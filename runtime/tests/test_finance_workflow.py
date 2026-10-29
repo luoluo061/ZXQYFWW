@@ -96,7 +96,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         result = f.export_views(self.root)
         self.assertEqual(result["finance_opportunities"], 0)
         self.assertFalse((self.root / "data/finance_workflow.sqlite").exists())
-        self.assertEqual(self.rows("每日检索政策台账.csv"), [])
+        self.assertEqual(self.rows("每日检索运行日志.csv"), [])
         self.assertEqual(self.main.execute("SELECT COUNT(*) FROM review_events").fetchone()[0], 0)
 
     def test_wrong_workspace_never_creates_database_or_output(self):
@@ -115,11 +115,11 @@ class FinanceWorkflowTests(unittest.TestCase):
         categories = ["税费优惠", "奖补兑现", "人才用工稳岗", "融资增信贴息"]
         payload, screening = self.collect([self.item(str(index), category) for index, category in enumerate(categories)])
         f.log_round(self.root, payload, screening)
-        rows = self.rows("财务政策资金台账.csv")
+        rows = self.rows("财务政策资金明细.csv")
         self.assertEqual({row["政策类别"] for row in rows}, set(categories))
         self.assertTrue(all(row["财务审核状态"] == "待财务审核" and row["人员参与决定"] == "待人员判断" for row in rows))
         self.assertTrue(all(row["适用财税期间"] == "模拟所属期" for row in rows))
-        daily = self.rows("每日检索政策台账.csv")[0]
+        daily = self.rows("每日检索运行日志.csv")[0]
         self.assertEqual(list(daily), f.DAILY_FIELDS)
         self.assertIn("待财务审核", daily["政策线索及人工判断"])
         self.assertNotIn("符合条件", daily["政策线索及人工判断"])
@@ -150,7 +150,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         f.log_round(self.root, *first)
         second = self.collect([self.item(), self.item("2")], "test-run-2", "2026-10-29T16:30:00+08:00")
         f.log_round(self.root, *second)
-        daily = self.rows("每日检索政策台账.csv")
+        daily = self.rows("每日检索运行日志.csv")
         self.assertEqual(len(daily), 1)
         self.assertEqual(daily[0]["今日检索政策条数"], "2")
         self.assertIn("2个检索轮次", daily[0]["备注"])
@@ -160,18 +160,18 @@ class FinanceWorkflowTests(unittest.TestCase):
         extra = self.observation(self.item("2"), "暂不推荐")
         payload, screening = self.collect(extra_observations=[extra])
         f.log_round(self.root, payload, screening)
-        self.assertEqual(self.rows("每日检索政策台账.csv")[0]["今日检索政策条数"], "2")
+        self.assertEqual(self.rows("每日检索运行日志.csv")[0]["今日检索政策条数"], "2")
         self.assertEqual(self.pool.execute("SELECT COUNT(*) FROM screening_cases").fetchone()[0], 2)
         self.assertEqual(self.pool.execute("SELECT COUNT(*) FROM screening_reviews").fetchone()[0], 0)
 
     def test_no_results_is_logged_but_failed_coverage_is_not_zero_complete_scan(self):
         payload, screening = self.collect([], status="failed")
         f.log_round(self.root, payload, screening)
-        daily = self.rows("每日检索政策台账.csv")[0]
+        daily = self.rows("每日检索运行日志.csv")[0]
         self.assertIn("未完成", daily["今日检索政策条数"])
         self.assertIn("采集失败", daily["备注"])
         f.log_round(self.root, *self.collect([], "test-run-2", "2026-10-30T09:00:00+08:00", "success"))
-        daily = self.rows("每日检索政策台账.csv")
+        daily = self.rows("每日检索运行日志.csv")
         self.assertEqual(len(daily), 2)
         self.assertEqual(daily[0]["今日检索政策条数"], "0")
         self.assertIn("无新增不取消检索留痕", daily[0]["备注"])
@@ -193,10 +193,10 @@ class FinanceWorkflowTests(unittest.TestCase):
             self.review("待补齐", material_gaps=["归集辅助账"])
         self.assertEqual(self.count_events(), 0)
         self.review("待补齐", material_gaps=["归集辅助账"], department="研发及财务", due="2026-11-02", next_keywords=["研发补助"])
-        row = self.rows("财务政策资金台账.csv")[0]
+        row = self.rows("财务政策资金明细.csv")[0]
         self.assertEqual(row["补料责任部门"], "研发及财务")
         self.assertEqual(row["人员补料期限"], "2026-11-02")
-        daily = self.rows("每日检索政策台账.csv")[0]
+        daily = self.rows("每日检索运行日志.csv")[0]
         self.assertIn("责任部门：研发及财务", daily["今日待办事项进展"])
         self.assertEqual(daily["次日待检索关键词"], "人员确认：研发补助")
 
@@ -211,7 +211,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         proof.parent.mkdir()
         proof.write_text("Only a mock receipt for testing.", "utf-8")
         self.review("已享受", date="2026-10-28", period="模拟所属期", voucher="TEST-V1", evidence=[str(proof)])
-        row = self.rows("财务政策资金台账.csv")[0]
+        row = self.rows("财务政策资金明细.csv")[0]
         self.assertEqual(row["到账日期"], "")
         self.assertEqual(row["税惠享受日期"], "2026-10-28")
         self.assertEqual(row["已享受所属期"], "模拟所属期")
@@ -225,7 +225,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.review("已到账", date="2026-11-01", voucher="TEST-V2", evidence=[str(proof)])
         self.review("已到账", date="2026-10-28", voucher="TEST-V2", evidence=[str(proof)])
-        row = self.rows("财务政策资金台账.csv")[0]
+        row = self.rows("财务政策资金明细.csv")[0]
         self.assertEqual(row["到账日期"], "2026-10-28")
         self.assertEqual(row["税惠享受日期"], "")
 
@@ -233,10 +233,10 @@ class FinanceWorkflowTests(unittest.TestCase):
         self.collect()
         self.review("可推进准备")
         self.assertEqual(self.main.execute("SELECT COUNT(*) FROM review_events").fetchone()[0], 0)
-        self.assertEqual(self.rows("财务政策资金台账.csv")[0]["人员参与决定"], "待人员判断")
+        self.assertEqual(self.rows("财务政策资金明细.csv")[0]["人员参与决定"], "待人员判断")
         self.review("可推进准备", participation="参与")
         self.assertEqual(self.count_events(), 2)
-        self.assertEqual(self.rows("财务政策资金台账.csv")[0]["人员参与决定"], "参与")
+        self.assertEqual(self.rows("财务政策资金明细.csv")[0]["人员参与决定"], "参与")
         with closing(sqlite3.connect(self.root / "data/finance_workflow.sqlite")) as db:
             with self.assertRaises(sqlite3.IntegrityError):
                 db.execute("UPDATE finance_reviews SET note='changed'")
@@ -259,7 +259,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         changed["body_text"] += "现已更新条件。"
         self.collect([changed], "changed-run", "2026-10-29T16:30:00+08:00")
         f.export_views(self.root)
-        row = self.rows("财务政策资金台账.csv")[0]
+        row = self.rows("财务政策资金明细.csv")[0]
         self.assertEqual(row["财务审核状态"], "待财务重新复核")
         self.assertEqual(row["上次财务结论"], "已到账")
         self.assertEqual(row["会计凭证号"], "TEST-CLOSED")
@@ -270,7 +270,7 @@ class FinanceWorkflowTests(unittest.TestCase):
     def test_history_reference_shows_real_status_not_eligible_claim(self):
         f.log_round(self.root, *self.collect())
         self.review("历史参考")
-        daily = self.rows("每日检索政策台账.csv")[0]
+        daily = self.rows("每日检索运行日志.csv")[0]
         self.assertIn("历史参考", daily["政策线索及人工判断"])
         self.assertNotIn("符合条件", daily["政策线索及人工判断"])
 
@@ -279,27 +279,27 @@ class FinanceWorkflowTests(unittest.TestCase):
         item["title"] = "=HYPERLINK(\"https://invalid.example\")"
         self.collect([item])
         f.export_views(self.root)
-        self.assertTrue(self.rows("财务政策资金台账.csv")[0]["政策标题"].startswith("'="))
+        self.assertTrue(self.rows("财务政策资金明细.csv")[0]["政策标题"].startswith("'="))
 
     def test_daily_snapshot_not_changed_by_next_day_source_human_or_participation(self):
         original = self.item()
         f.log_round(self.root, *self.collect([original]))
         self.review("可推进准备", participation="参与")
-        first = self.rows("每日检索政策台账.csv")[0]
+        first = self.rows("每日检索运行日志.csv")[0]
         changed = copy.deepcopy(original)
         changed["title"] = "次日变更的政策标题"
         changed["body_text"] += "次日变更条件。"
         f.log_round(self.root, *self.collect([changed], "next-day", "2026-10-30T09:00:00+08:00"))
         f.save_review(self.root, "P001", "不适用", "模拟财务人员", "次日真实更正依据",
                       reviewed_at="2026-10-30T10:00:00+08:00", participation="不参与")
-        by_day = {row["检索日期"]: row for row in self.rows("每日检索政策台账.csv")}
+        by_day = {row["检索日期"]: row for row in self.rows("每日检索运行日志.csv")}
         self.assertEqual(by_day["2026-10-29"]["政策线索及人工判断"], first["政策线索及人工判断"])
         self.assertEqual(by_day["2026-10-29"]["今日待办事项进展"], first["今日待办事项进展"])
         self.assertIn(original["title"], by_day["2026-10-29"]["政策线索及人工判断"])
         self.assertIn("参与决定：参与", by_day["2026-10-29"]["政策线索及人工判断"])
         self.assertIn("次日变更的政策标题", by_day["2026-10-30"]["政策线索及人工判断"])
         self.assertIn("不适用", by_day["2026-10-30"]["政策线索及人工判断"])
-        self.assertIn("不参与", self.rows("财务政策资金台账.csv")[0]["人员参与决定"])
+        self.assertIn("不参与", self.rows("财务政策资金明细.csv")[0]["人员参与决定"])
 
     def test_no_document_number_linked_platform_and_official_pages_count_once(self):
         item = self.item()
@@ -315,7 +315,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         f.monitor.ensure_display_ids(self.main)
         f.human_review.ingest(self.pool, screening)
         f.log_round(self.root, payload, screening)
-        self.assertEqual(self.rows("每日检索政策台账.csv")[0]["今日检索政策条数"], "1")
+        self.assertEqual(self.rows("每日检索运行日志.csv")[0]["今日检索政策条数"], "1")
         stored = json.loads(self.pool.execute("SELECT data FROM screening_observations").fetchone()[0])
         self.assertFalse(stored["original_verified"])
         self.assertEqual(stored["reading_level"], "平台详情")
@@ -328,7 +328,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         changed["title"] = "下午更新的政策标题"
         changed["body_text"] += "下午新增重要条件。"
         f.log_round(self.root, *self.collect([changed], "same-day-afternoon", "2026-10-29T16:30:00+08:00"))
-        daily = self.rows("每日检索政策台账.csv")[0]
+        daily = self.rows("每日检索运行日志.csv")[0]
         self.assertIn("下午更新的政策标题", daily["政策线索及人工判断"])
         self.assertIn("待财务重新复核", daily["政策线索及人工判断"])
         self.assertIn("来源v2", daily["政策线索及人工判断"])
@@ -337,15 +337,19 @@ class FinanceWorkflowTests(unittest.TestCase):
         self.assertIn("来源v1，10:00审核", daily["今日待办事项进展"])
         self.assertIn("人员测试原话及依据", daily["今日待办事项进展"])
         self.assertEqual(self.count_events(), 1)
-        self.assertEqual(self.rows("财务政策资金台账.csv")[0]["财务审核状态"], "待财务重新复核")
+        self.assertEqual(self.rows("财务政策资金明细.csv")[0]["财务审核状态"], "待财务重新复核")
+        simple = self.rows("每日检索政策台账.csv")[0]
+        self.assertIn("下午更新的政策标题", simple["编号及政策名称"])
+        self.assertIn("待财务重新复核", simple["人工意见及下一步"])
+        self.assertIn("人员测试原话及依据", simple["人工意见及下一步"])
 
     def test_same_title_and_url_different_document_batches_are_not_merged(self):
         first, second = self.item("1"), self.item("2")
         second["title"] = first["title"]
         second["original_url"] = second["source_url"] = first["original_url"]
         f.log_round(self.root, *self.collect([first, second]))
-        self.assertEqual(self.rows("每日检索政策台账.csv")[0]["今日检索政策条数"], "2")
-        self.assertEqual(len(self.rows("财务政策资金台账.csv")), 2)
+        self.assertEqual(self.rows("每日检索运行日志.csv")[0]["今日检索政策条数"], "2")
+        self.assertEqual(len(self.rows("财务政策资金明细.csv")), 2)
 
     def test_same_title_no_number_distinct_rounds_are_not_merged(self):
         first, second = self.item(), self.item()
@@ -354,7 +358,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         first["round"], second["round"] = "模拟第一批", "模拟第二批"
         payload, screening = self.collect([first, second])
         f.log_round(self.root, payload, screening)
-        self.assertEqual(self.rows("每日检索政策台账.csv")[0]["今日检索政策条数"], "2")
+        self.assertEqual(self.rows("每日检索运行日志.csv")[0]["今日检索政策条数"], "2")
 
     def test_human_correction_preserves_receipt_only_as_history(self):
         self.collect()
@@ -363,7 +367,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         self.review("已到账", date="2026-10-28", voucher="TEST-CORRECTED", evidence=[str(proof)])
         f.save_review(self.root, "P001", "待财务审核", "模拟财务人员", "人员更正到账记录，待重新核实",
                       reviewed_at="2026-10-29T11:00:00+08:00")
-        row = self.rows("财务政策资金台账.csv")[0]
+        row = self.rows("财务政策资金明细.csv")[0]
         self.assertEqual(row["财务审核状态"], "待财务审核")
         self.assertEqual(row["会计凭证号"], "TEST-CORRECTED")
         self.assertIn("历史闭环", row["闭环说明"])
@@ -379,7 +383,7 @@ class FinanceWorkflowTests(unittest.TestCase):
         f.human_review.ingest(self.pool, screening)
         f.human_review.review(self.pool, "R00001", "模拟复核人员", "先补证据", "需要补齐材料", payload["items"][0]["original_url"], "2026-10-29T10:10:00+08:00")
         f.export_views(self.root)
-        row = self.rows("财务政策资金台账.csv")[0]
+        row = self.rows("财务政策资金明细.csv")[0]
         self.assertEqual(row["人工筛选复核"], "已复核")
         self.assertEqual(row["关联复核编号"], "R00001")
         self.assertEqual(row["财务审核状态"], "待财务审核")
@@ -404,11 +408,192 @@ class FinanceWorkflowTests(unittest.TestCase):
             "coverage": [{"source_id": "fixture_official", "status": "partial", "queries": ["测试新期限提示"]}],
             "items": [lower]}, self.profile)
         f.export_views(self.root)
-        row = self.rows("财务政策资金台账.csv")[0]
+        row = self.rows("财务政策资金明细.csv")[0]
         self.assertEqual(row["机器初筛"], "待核")
         self.assertEqual(row["财务审核状态"], "待财务重新复核")
         self.assertEqual(row["人员参与决定"], "参与")
         self.assertEqual(self.count_events(), 1)
+
+    def test_simple_views_have_eight_and_ten_columns_and_one_policy_per_day(self):
+        f.log_round(self.root, *self.collect([self.item(), self.item("2")]))
+        f.log_round(self.root, *self.collect([self.item()], "afternoon", "2026-10-29T16:30:00+08:00"))
+        daily = self.rows("每日检索政策台账.csv")
+        ledger = self.rows("财务政策资金台账.csv")
+        self.assertEqual(len(daily), 2)
+        self.assertEqual(len(ledger), 2)
+        self.assertEqual(list(daily[0]), f.SIMPLE_DAILY_FIELDS)
+        self.assertEqual(list(ledger[0]), f.SIMPLE_LEDGER_FIELDS)
+        self.assertEqual(len(daily[0]), 8)
+        self.assertEqual(len(ledger[0]), 10)
+        self.assertTrue(all(row["是否参与"] == "待人员判断" and row["办理进展"] == "待财务审核" for row in ledger))
+        self.assertTrue(all(row["编号及政策名称"].count("https://") == 1 for row in daily))
+        self.assertTrue(all("模拟省" in row["检索词/地区"] for row in daily))
+        self.assertEqual(len(self.rows("每日检索运行日志.csv")), 1)
+        self.assertEqual(self.count_events(), 0)
+
+    def test_simple_zero_results_keeps_run_log_without_fake_policy_row(self):
+        f.log_round(self.root, *self.collect([], status="failed"))
+        self.assertEqual(self.rows("每日检索政策台账.csv"), [])
+        self.assertEqual(self.rows("财务政策资金台账.csv"), [])
+        log = self.rows("每日检索运行日志.csv")
+        self.assertEqual(len(log), 1)
+        self.assertIn("未完成", log[0]["今日检索政策条数"])
+
+    def test_locked_csv_exports_use_new_names_and_preserve_open_original_files(self):
+        self.collect()
+        folder = self.root / "exports"
+        folder.mkdir()
+        files = {"ledger": "财务政策资金台账.csv", "daily_log": "每日检索政策台账.csv",
+                 "ledger_details": "财务政策资金明细.csv", "run_log": "每日检索运行日志.csv"}
+        for filename in files.values():
+            (folder / filename).write_text("original-open-file", "utf-8")
+        real_replace = os.replace
+        def replace(source, target):
+            if Path(target).name in files.values():
+                raise PermissionError("mock Windows file lock")
+            return real_replace(source, target)
+        with patch.object(f.os, "replace", side_effect=replace):
+            result = f.export_views(self.root)
+        for key, filename in files.items():
+            original = folder / filename
+            actual = original.with_name(original.stem + "_新版.csv")
+            self.assertEqual(result[key], str(actual))
+            self.assertTrue(actual.is_file())
+            self.assertEqual(original.read_text("utf-8"), "original-open-file")
+        self.assertEqual(len(result["export_notes"]), 4)
+        self.assertIn("可能正在被Excel占用", result["note"])
+        self.assertEqual(self.count_events(), 0)
+        self.assertEqual(self.main.execute("SELECT COUNT(*) FROM review_events").fetchone()[0], 0)
+        self.assertFalse(list(folder.glob(".finance-export-*")))
+
+    def test_export_uses_default_paths_when_not_locked(self):
+        result = f.export_views(self.root)
+        self.assertEqual(result["ledger"], str(self.root / "exports/财务政策资金台账.csv"))
+        self.assertEqual(result["daily_log"], str(self.root / "exports/每日检索政策台账.csv"))
+        self.assertEqual(result["export_notes"], [])
+
+    def test_both_csv_names_locked_raise_clear_error_and_remove_temporary_file(self):
+        folder = self.root / "exports"
+        folder.mkdir()
+        target = folder / "台账.csv"
+        with patch.object(f.os, "replace", side_effect=PermissionError("mock locked")):
+            with self.assertRaisesRegex(PermissionError, "原台账和新版文件均无法写入"):
+                f.csv_export(target, ["标题"], [{"标题": "模拟"}])
+        self.assertFalse(list(folder.glob(".finance-export-*")))
+        self.assertFalse(target.exists())
+
+    def test_simple_daily_prefers_linked_policy_context_over_shared_source_queries(self):
+        first, second = self.item(), self.item("2")
+        payload, screening = self.collect([first, second])
+        ids = f.display_ids(self.root, f.records_and_ids(self.root)[0])
+        records = {json.loads(row["data"])["title"]: row["id"] for row in self.main.execute("SELECT id,data FROM records")}
+        screening["run_id"] = payload["run_id"] = "linked-context"
+        screening["observations"][0].update(opportunity_id=ids[records[first["title"]]], query="本政策检索词", region_filter="本政策地区")
+        screening["observations"][1].update(opportunity_id=ids[records[second["title"]]], query="另一政策词", region_filter="另一政策地区")
+        payload["coverage"][0]["queries"] = ["共享来源全量词1", "共享来源全量词2"]
+        screening["coverage"] = copy.deepcopy(payload["coverage"])
+        f.monitor.ingest(self.main, payload, self.profile)
+        f.human_review.ingest(self.pool, screening)
+        f.log_round(self.root, payload, screening)
+        rows = self.rows("每日检索政策台账.csv")
+        first_row = next(row for row in rows if first["title"] in row["编号及政策名称"])
+        self.assertIn("本政策检索词", first_row["检索词/地区"])
+        self.assertIn("本政策地区", first_row["检索词/地区"])
+        self.assertNotIn("共享来源全量", first_row["检索词/地区"])
+        self.assertNotIn("另一政策", first_row["检索词/地区"])
+
+    def test_simple_daily_preserves_old_source_and_human_decisions(self):
+        original = self.item()
+        f.log_round(self.root, *self.collect([original]))
+        self.review("可推进准备", participation="参与")
+        before = self.rows("每日检索政策台账.csv")[0]
+        changed = copy.deepcopy(original)
+        changed["title"] = "次日新的标题"
+        changed["body_text"] += "次日条件变更"
+        f.log_round(self.root, *self.collect([changed], "next-day", "2026-10-30T09:00:00+08:00"))
+        f.save_review(self.root, "P001", "不适用", "模拟财务人员", "次日明确更正",
+                      reviewed_at="2026-10-30T10:00:00+08:00", participation="不参与")
+        by_day = {row["检索日期"]: row for row in self.rows("每日检索政策台账.csv")}
+        self.assertEqual(by_day["2026-10-29"], before)
+        self.assertIn("次日新的标题", by_day["2026-10-30"]["编号及政策名称"])
+        self.assertEqual(self.rows("财务政策资金台账.csv")[0]["是否参与"], "不参与")
+
+    def test_display_notes_require_current_version_and_do_not_rewrite_prior_days(self):
+        f.log_round(self.root, *self.collect())
+        record_id = self.main.execute("SELECT id FROM records").fetchone()[0]
+        note = {"source_version": 1, "updated_at": "2026-10-30T11:00:00+08:00",
+                "title": "通俗标题", "benefit": "符合条件可减少税费", "checks": "先核辅助账"}
+        self.write("data/finance_display_notes.json", {record_id: note})
+        f.export_views(self.root)
+        self.assertIn("通俗标题", self.rows("财务政策资金台账.csv")[0]["编号及政策名称"])
+        self.assertNotIn("通俗标题", self.rows("每日检索政策台账.csv")[0]["编号及政策名称"])
+        note["source_version"] = 2
+        self.write("data/finance_display_notes.json", {record_id: note})
+        f.export_views(self.root)
+        self.assertNotIn("通俗标题", self.rows("财务政策资金台账.csv")[0]["编号及政策名称"])
+        self.assertEqual(self.count_events(), 0)
+        self.assertEqual(self.main.execute("SELECT version FROM records").fetchone()[0], 1)
+
+    def test_source_checked_display_notes_accept_three_checks_without_changing_human_next_step(self):
+        f.log_round(self.root, *self.collect())
+        record_id = self.main.execute("SELECT id FROM records").fetchone()[0]
+        self.write("data/finance_display_notes.json", {record_id: {"source_version": 1,
+            "source_checked_at": "2026-10-29T09:00:00+08:00", "title": "通俗标题",
+            "checks": ["核辅助账", "核所属期", "核已享受"], "next_action": "机器建议补材料"}})
+        f.export_views(self.root)
+        daily = self.rows("每日检索政策台账.csv")[0]
+        self.assertIn("通俗标题", daily["编号及政策名称"])
+        self.assertEqual(daily["要核实什么"], "核辅助账；核所属期；核已享受")
+        self.assertIn("原文：https://", daily["编号及政策名称"])
+        self.review("可推进准备")
+        self.assertEqual(self.rows("财务政策资金台账.csv")[0]["下一步/负责人"], "人员测试原话及依据")
+
+    def test_policy_execution_end_is_not_written_as_enterprise_deadline(self):
+        item = self.item()
+        item["deadline_at"] = "2026-12-31"
+        item["deadline_kind"] = "policy_execution_end"
+        item["finance"]["applicable_period"] = "2026年度政策执行期"
+        f.log_round(self.root, *self.collect([item]))
+        timing = self.rows("财务政策资金台账.csv")[0]["办理时间"]
+        self.assertIn("企业具体办理时间待核", timing)
+        self.assertNotIn("企业办理截止：2026-12-31", timing)
+        self.assertNotIn("主要办理节点：2026-12-31", timing)
+
+    def test_simple_view_real_review_updates_finance_without_automatic_participation(self):
+        f.log_round(self.root, *self.collect())
+        self.review("待补齐", material_gaps=["辅助账"], department="研发", due="2026-11-02")
+        row = self.rows("财务政策资金台账.csv")[0]
+        self.assertEqual(row["是否参与"], "待人员判断")
+        self.assertEqual(row["办理进展"], "待补齐")
+        self.assertIn("研发", row["下一步/负责人"])
+        self.assertIn("2026-11-02", row["下一步/负责人"])
+        self.assertIn("辅助账", row["下一步/负责人"])
+
+    def test_participation_only_feedback_has_a_daily_row_without_a_new_scan(self):
+        f.log_round(self.root, *self.collect())
+        record_id = self.main.execute("SELECT id FROM records").fetchone()[0]
+        f.monitor.save_review(self.main, record_id, "不参与", "人员明确暂不参与", "2026-10-30T10:00:00+08:00")
+        result = f.export_views(self.root)
+        rows = {row["检索日期"]: row for row in self.rows("每日检索政策台账.csv")}
+        self.assertIn("参与决定：不参与", rows["2026-10-30"]["人工意见及下一步"])
+        self.assertIn("仅记录人员进展", rows["2026-10-30"]["检索词/地区"])
+        self.assertEqual(result["logged_runs"], 1)
+        self.assertEqual(self.count_events(), 0)
+
+    def test_display_notes_cannot_claim_materials_or_mask_a_pending_source_update(self):
+        f.log_round(self.root, *self.collect())
+        record_id = self.main.execute("SELECT id FROM records").fetchone()[0]
+        self.write("data/finance_display_notes.json", {record_id: {"source_version": 1,
+            "source_checked_at": "2026-10-29T09:00:00+08:00", "title": "通俗旧标题",
+            "materials_text": "已下载并且申报材料齐全", "timing": "所有截止已确定"}})
+        f.export_views(self.root)
+        self.assertNotIn("申报材料齐全", self.rows("财务政策资金台账.csv")[0]["资料下载"])
+        self.main.execute("UPDATE records SET pending_source_update=1 WHERE id=?", (record_id,))
+        self.main.commit()
+        f.export_views(self.root)
+        row = self.rows("财务政策资金台账.csv")[0]
+        self.assertNotIn("通俗旧标题", row["编号及政策名称"])
+        self.assertNotIn("所有截止已确定", row["办理时间"])
 
 
 if __name__ == "__main__":

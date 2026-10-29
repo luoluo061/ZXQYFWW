@@ -43,6 +43,10 @@ LEDGER_FIELDS = ["编号", "政策标题", *FINANCE_FIELDS.values(), "机器初�
     "最近核查", "内部记录编号"]
 DAILY_FIELDS = ["检索日期", "今日检索关键词", "检索地域（省/市）", "今日检索政策条数", "今日待办事项进展",
     "次日待检索关键词", "政策线索及人工判断", "备注"]
+SIMPLE_LEDGER_FIELDS = ["编号及政策名称", "政策类别", "能带来什么", "要核实/缺什么资料", "办理时间",
+    "资料下载", "是否参与", "办理进展", "下一步/负责人", "最近跟进"]
+SIMPLE_DAILY_FIELDS = ["检索日期", "编号及政策名称", "检索词/地区", "能带来什么", "要核实什么",
+    "办理时间", "资料下载", "人工意见及下一步"]
 
 
 def load_core(name):
@@ -54,6 +58,7 @@ def load_core(name):
 
 monitor = load_core("monitor")
 human_review = load_core("human_review")
+finance_workbooks = load_core("finance_workbooks")
 
 
 def text_json(value):
@@ -189,7 +194,17 @@ def csv_export(path, fields, rows):
             writer = csv.DictWriter(handle, fieldnames=fields)
             writer.writeheader()
             writer.writerows({key: monitor.csv_value(row.get(key, "")) for key in fields} for row in rows)
-        os.replace(temporary, path)
+        try:
+            os.replace(temporary, path)
+            written = path
+        except PermissionError:
+            alternative = path.with_name(path.stem + "_新版" + path.suffix)
+            try:
+                os.replace(temporary, alternative)
+            except PermissionError as error:
+                raise PermissionError(f"原台账和新版文件均无法写入，可能正在被Excel占用：{path.name}、{alternative.name}。请关闭对应文件后重试。") from error
+            written = alternative
+        return written
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -632,6 +647,148 @@ def daily_rows(root, runs, reviews, records, ids, ledgers):
     return results
 
 
+def display_note(root, record, as_of=None):
+    """Display wording is version-bound and never changes source or human facts."""
+    if record.get("pending_source_update"):
+        return {}
+    target = safe_path(root, "data/finance_display_notes.json")
+    notes = read_json(target) if target.is_file() else {}
+    note = notes.get(record["id"], {}) if isinstance(notes, dict) else {}
+    if not isinstance(note, dict) or note.get("source_version") != record["version"]:
+        return {}
+    if as_of is not None:
+        # Undated wording is usable in the current view only. Later edits must
+        # not silently rewrite a previous day's deliverable.
+        dated = [time_value(note[field]) for field in ("source_checked_at", "updated_at") if note.get(field)]
+        if not dated or max(dated) > as_of:
+            return {}
+    return note
+
+
+def concise_timing(item):
+    finance = finance_data(item)
+    parts = []
+    if finance.get("application_deadline"):
+        parts.append("企业办理截止：" + list_text(finance["application_deadline"]))
+    elif item.get("deadline_at") and not any(term in str(item.get("deadline_kind", ""))
+            for term in ("execution", "执行", "period", "政策")):
+        parts.append("主要办理节点：" + str(item["deadline_at"]))
+    if finance.get("applicable_period"):
+        parts.append(list_text(finance["applicable_period"]))
+    if not finance.get("application_deadline"):
+        parts.append("企业具体办理时间待核")
+    return "；".join(parts) or "办理时间待核"
+
+
+def brief_row(root, record, ids, reviews, core, as_of=None):
+    item = json.loads(record["data"])
+    finance = finance_data(item)
+    note = display_note(root, record, as_of)
+    known_reviews = [row for row in reviews if as_of is None or row["reviewed_at"] <= as_of]
+    latest, _, state = current_review(record, known_reviews)
+    detail = json.loads(latest["details"]) if latest else {}
+    sql = "SELECT state,note,reviewed_at FROM review_events WHERE record_id=?"
+    args = [record["id"]]
+    if as_of is not None:
+        sql += " AND reviewed_at<=?"
+        args.append(as_of)
+    decision = core.execute(sql + " ORDER BY reviewed_at DESC,id DESC LIMIT 1", args).fetchone()
+    participation = monitor.review_display(decision["state"]) if decision else "待人员判断"
+    conditions = [str(c.get("label", "")).strip() for c in item.get("hard_conditions", [])[:3] if c.get("label")]
+    checks = "；".join(conditions) or list_text(finance.get("material_gaps")) or "适用条件和企业材料待核"
+    original = item.get("original_url") or item["source_url"]
+    title = note.get("title") or item["title"]
+    title_with_link = f"{ids[record['id']]} {title}\n原文：{original}"
+    material_path = safe_path(root, "materials/materials_manifest.json")
+    manifest = read_json(material_path).get("attachments", []) if material_path.is_file() else []
+    if as_of is not None:
+        manifest = [entry for entry in manifest if entry.get("status") != "downloaded" or
+                    entry.get("downloaded_at") and time_value(entry["downloaded_at"]) <= as_of]
+    previous = monitor.TOOL_ROOT
+    monitor.TOOL_ROOT = root
+    try:
+        material_text = monitor.material_text(monitor.material_entries(record["id"], manifest))
+    finally:
+        monitor.TOOL_ROOT = previous
+    next_action = note.get("next_action") or "请财务核对条件和已有材料，再回复是否参与"
+    if latest:
+        next_action = latest["note"]
+        if detail.get("department"):
+            next_action += "；补料：" + list_text(detail.get("material_gaps")) + "；" + detail["department"] + "，" + detail["due"] + "前"
+        if state == "待财务重新复核":
+            next_action = "需重新复核。上次人员意见：" + next_action
+    if not latest and participation == "不参与":
+        next_action = decision["note"] or "人员已决定不参与，保留记录"
+    elif not latest and participation == "先补资料":
+        next_action = decision["note"] or "人员已决定先补资料，具体缺口待确认"
+    elif not latest and participation == "参与":
+        next_action = decision["note"] or "人员已决定参与，财务条件和准备工作待审核"
+    followup = max([record["last_seen"], *([latest["reviewed_at"]] if latest else []),
+                    *([decision["reviewed_at"]] if decision else [])])
+    return {"编号及政策名称": title_with_link, "政策类别": finance["category"],
+            "能带来什么": note.get("benefit") or list_text(finance.get("benefit_description")) or item.get("summary") or "支持内容待核",
+            "要核实/缺什么资料": list_text(note.get("checks")) or checks,
+            "办理时间": note.get("timing") or concise_timing(item),
+            "资料下载": material_text or "尚未取得办理材料",
+            "是否参与": participation, "办理进展": state, "下一步/负责人": next_action,
+            "最近跟进": followup}
+
+
+def simple_ledger_rows(root, records, ids, reviews):
+    with ro_db(safe_path(root, "data/monitor.sqlite")) as core:
+        return [brief_row(root, record, ids, reviews, core) for record in records]
+
+
+def simple_daily_rows(root, runs, reviews, ids):
+    """One candidate per day, with actual contexts and that day's source facts."""
+    days = sorted({r["checked_at"][:10] for r in runs} | {r["reviewed_at"][:10] for r in reviews}, reverse=True)
+    output = []
+    reverse = {display: internal for internal, display in ids.items()}
+    with ro_db(safe_path(root, "data/monitor.sqlite")) as core:
+        decisions = [dict(row) for row in core.execute("SELECT record_id,reviewed_at FROM review_events ORDER BY reviewed_at,id")]
+        days = sorted(set(days) | {row["reviewed_at"][:10] for row in decisions}, reverse=True)
+        for day in days:
+            cutoff = day + "T23:59:59+08:00"
+            snapshots, contexts = {}, {}
+            for run in [r for r in runs if r["checked_at"][:10] == day]:
+                payload, screening = json.loads(run["input_json"]), json.loads(run["screening_json"])
+                saved = json.loads(run.get("snapshots_json") or "{}")
+                if not saved:
+                    saved = {r[0]: source_snapshot(core, r[0], run["checked_at"]) for r in
+                             core.execute("SELECT DISTINCT record_id FROM observations WHERE run_id=?", (run["run_id"],))}
+                for internal, snapshot in saved.items():
+                    if snapshot is None:
+                        continue
+                    previous = snapshots.get(internal)
+                    if previous is None or (snapshot["last_seen"], snapshot["version"]) > (previous["last_seen"], previous["version"]):
+                        snapshots[internal] = snapshot
+                    item = json.loads(snapshot["data"])
+                    local = contexts.setdefault(internal, set())
+                    for source in payload["coverage"]:
+                        if source["source_id"] == item["source_id"]:
+                            local.update(coverage_terms(source, ("queries", "query", "regions", "region")))
+                for observation in screening["observations"]:
+                    internal = reverse.get(observation.get("opportunity_id"))
+                    if internal in saved:
+                        actual = coverage_terms(observation, ("query", "region_filter"))
+                        if actual:
+                            # A source may contain unrelated policy searches.
+                            # Prefer actual contexts linked to this P number.
+                            contexts.setdefault((internal, "linked"), set()).update(actual)
+            for review in [r for r in [*reviews, *decisions] if r["reviewed_at"][:10] == day]:
+                snapshot = source_snapshot(core, review["record_id"], review["reviewed_at"])
+                previous = snapshots.get(review["record_id"])
+                if snapshot and (previous is None or (snapshot["last_seen"], snapshot["version"]) > (previous["last_seen"], previous["version"])):
+                    snapshots[review["record_id"]] = snapshot
+            for internal in sorted(snapshots, key=lambda key: ids.get(key, key)):
+                summary = brief_row(root, snapshots[internal], ids, reviews, core, cutoff)
+                context = "、".join(sorted(contexts.get((internal, "linked")) or contexts.get(internal, set()))) or "本日仅记录人员进展，未重新检索网站"
+                output.append(dict(zip(SIMPLE_DAILY_FIELDS, [day, summary["编号及政策名称"], context,
+                    summary["能带来什么"], summary["要核实/缺什么资料"], summary["办理时间"], summary["资料下载"],
+                    summary["办理进展"] + "；参与决定：" + summary["是否参与"] + "\n" + summary["下一步/负责人"]])))
+    return output
+
+
 def export_views(workspace_path):
     root, profile = workspace(workspace_path)
     records, ids = records_and_ids(root)
@@ -642,10 +799,29 @@ def export_views(workspace_path):
     folder.mkdir(exist_ok=True)
     ledger_path = safe_path(root, "exports/财务政策资金台账.csv")
     daily_path = safe_path(root, "exports/每日检索政策台账.csv")
-    csv_export(ledger_path, LEDGER_FIELDS, rows)
-    csv_export(daily_path, DAILY_FIELDS, daily)
-    return {"ledger": str(ledger_path), "daily_log": str(daily_path), "finance_opportunities": len(rows),
-            "logged_runs": len(runs), "human_review_events": len(reviews), "web_collection_performed": False}
+    details_path = safe_path(root, "exports/财务政策资金明细.csv")
+    runs_path = safe_path(root, "exports/每日检索运行日志.csv")
+    details_written = csv_export(details_path, LEDGER_FIELDS, rows)
+    runs_written = csv_export(runs_path, DAILY_FIELDS, daily)
+    simple_rows = simple_ledger_rows(root, records, ids, reviews)
+    simple_daily = simple_daily_rows(root, runs, reviews, ids)
+    ledger_written = csv_export(ledger_path, SIMPLE_LEDGER_FIELDS, simple_rows)
+    daily_written = csv_export(daily_path, SIMPLE_DAILY_FIELDS, simple_daily)
+    replaced = [(old, actual) for old, actual in ((ledger_path, ledger_written), (daily_path, daily_written),
+                (details_path, details_written), (runs_path, runs_written)) if old != actual]
+    notes = [f"{old.name}可能正在被Excel占用，原文件保留；本次结果已保存为{actual.name}。" for old, actual in replaced]
+    result = {"ledger": str(ledger_written), "daily_log": str(daily_written), "finance_opportunities": len(rows),
+            "ledger_details": str(details_written), "run_log": str(runs_written), "daily_policy_rows": len(simple_daily),
+            "logged_runs": len(runs), "human_review_events": len(reviews), "web_collection_performed": False,
+            "export_notes": notes}
+    manifest_path = safe_path(root, "materials/materials_manifest.json")
+    manifest = read_json(manifest_path) if manifest_path.is_file() else {"attachments": []}
+    workbooks = finance_workbooks.export_workbooks(root, simple_daily, simple_rows, records, ids, manifest)
+    result.update(workbooks)
+    notes.extend(workbooks.get("workbook_export_notes", []))
+    if notes:
+        result["note"] = "\n".join(notes)
+    return result
 
 
 def main(argv=None):

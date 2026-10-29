@@ -26,9 +26,9 @@ STATIC_FILES = ("monitor.py", "human_review.py", "profile.example.json",
                 "sources.example.json", "version.json", "examples/incoming.example.json",
                 "examples/screening.example.json", "tests/test_monitor.py",
                 "tests/test_human_review.py", "tests/test_monitor_review_integration.py")
-FINANCE_FILES = ("finance_workflow.py", "profile.finance.example.json", "sources.finance.example.json",
+FINANCE_FILES = ("finance_workflow.py", "finance_workbooks.py", "profile.finance.example.json", "sources.finance.example.json",
                  "examples/finance_incoming.example.json", "examples/finance_screening.example.json",
-                 "tests/test_finance_workflow.py")
+                 "tests/test_finance_workflow.py", "tests/test_finance_workbooks.py")
 FORBIDDEN_KEYS = {"password", "passwd", "secret", "api_key", "apikey", "access_token",
                   "refresh_token", "cookie", "cookies", "authorization", "automation_id",
                   "automation_ids", "automations", "automation_setup", "notification_receipts",

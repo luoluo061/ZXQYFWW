@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sme-finance-opportunities",
-  "version": "0.2.0-finance.1",
+  "version": "0.2.1-finance.1",
   "description": "财务税惠、奖补、稳岗与政策性融资支持的筛选复核、每日台账和兑现跟踪。",
   "repository": "https://github.com/luoluo061/ZXQYFWW",
   "extensions": {

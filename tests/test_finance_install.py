@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import zipfile
+from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -45,8 +47,18 @@ class FinanceInstallTests(unittest.TestCase):
         self.assertEqual([x["local_time"] for x in setup["requested_schedule"]], ["09:00", "16:30"])
         self.assertTrue(all(x["edition"] == "finance" for x in setup["requested_schedule"]))
         self.assertEqual(setup["automations"], [])
-        for name in ["财务政策资金台账.csv", "每日检索政策台账.csv"]:
+        for name in ["财务政策资金台账.csv", "每日检索政策台账.csv", "财务政策资金台账.xlsx", "每日检索政策台账.xlsx"]:
             self.assertTrue((self.workspace / "exports" / name).is_file())
+        self.assertTrue((self.workspace / "finance_workbooks.py").is_file())
+        self.assertTrue((self.workspace / "tests/test_finance_workbooks.py").is_file())
+        for name in ["财务政策资金台账.xlsx", "每日检索政策台账.xlsx"]:
+            with zipfile.ZipFile(self.workspace / "exports" / name) as archive:
+                self.assertIsNone(archive.testzip())
+                document = ET.fromstring(archive.read("xl/workbook.xml"))
+                namespace = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+                sheets = document.findall("s:sheets/s:sheet", namespace)
+                self.assertEqual(len(sheets), 2)
+                self.assertIn("资料明细", [sheet.attrib["name"] for sheet in sheets])
         self.assertEqual(bootstrap.doctor(self.args())["status"], "healthy")
 
     def test_import_preserves_facts_but_changes_department_search_directions(self):
@@ -108,6 +120,11 @@ class FinanceInstallTests(unittest.TestCase):
         self.assertNotEqual(finance["skill_directory"], general["skill_directory"])
         self.assertTrue(installer.doctor(target, "finance")["ok"])
         self.assertTrue(installer.doctor(target, "general")["ok"])
+
+    def test_finance_skill_payload_carries_portable_workbook_module_and_tests(self):
+        files = installer.payload(edition="finance")
+        self.assertIn("runtime/finance_workbooks.py", files)
+        self.assertIn("runtime/tests/test_finance_workbooks.py", files)
 
     def test_known_office_region_enables_discovery_without_tax_eligibility(self):
         company = {"name": "Fixture Local Ltd", "located_province": "云南", "located_city": "昆明",
