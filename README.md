@@ -48,4 +48,4 @@ python tools/check_package.py
 
 实现依据：[官方技能文档](https://learn.chatgpt.com/docs/build-skills)、[官方定时任务文档](https://learn.chatgpt.com/docs/automations)、[官方插件打包文档](https://developers.openai.com/plugins/build/plugins)。
 
-发行前实际验证及待验收边界见 [v0.1.0验证记录](VALIDATION.md)。
+发行前实际验证及待验收边界见 [v0.1.1验证记录](VALIDATION.md)。

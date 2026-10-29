@@ -59,7 +59,7 @@ def workspace_path(value):
     if not path.is_absolute():
         raise ValueError("--workspace 必须是独立工作目录的绝对路径")
     path = path.resolve()
-    package_root = RUNTIME.parent
+    package_root = RUNTIME.parent.resolve()
     if path == package_root or path in package_root.parents or path.is_relative_to(package_root):
         raise ValueError("工作数据目录须与分发源代码目录分开")
     parts = [part.casefold() for part in path.parts]
@@ -329,6 +329,9 @@ def doctor(args):
 
 
 def main(argv=None):
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     command = commands.add_parser("init")

@@ -15,7 +15,7 @@ SPEC.loader.exec_module(bundle)
 class ProfileBundleTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
+        self.root = Path(self.tmp.name).resolve()
         self.source = self.root / "private source"
         self.source.mkdir()
         self.evidence = self.source / "inputs" / "说明.pdf"
@@ -202,6 +202,34 @@ class ProfileBundleTests(unittest.TestCase):
         self.assertEqual(1, self.pack()["evidence_files"])
         bundle.unpack(self.archive, self.workspace)
         self.assertEqual(2, bundle.doctor(workspace_path=self.workspace)["document_references"])
+
+    def test_scheduler_identifiers_rejected_in_pack_and_import(self):
+        for key in ("automations", "ThreadId", "AUTOMATION-SETUP", "targetThreadId",
+                    "notification-receipts", "service-access-token"):
+            with self.subTest(key=key):
+                self.profile["nested"] = {key: "old registration must not move"}
+                self.write_profile()
+                with self.assertRaisesRegex(ValueError, "凭据|自动化|对话"):
+                    self.pack()
+                self.assertFalse(self.archive.exists())
+        del self.profile["nested"]
+        self.write_profile()
+        self.pack()
+        # A validly hashed archive is still rejected when its profile carries
+        # another person's scheduler state; integrity does not grant scope.
+        def inject(contents):
+            profile = json.loads(contents["profile.json"])
+            profile["nested"] = {"AUTOMATION-SETUP": {"automations": []}}
+            contents["profile.json"] = bundle.json_bytes(profile)
+            manifest = json.loads(contents["manifest.json"])
+            manifest["files"] = [{"path": name, "sha256": bundle.sha256(content), "size": len(content)}
+                                 for name, content in sorted(contents.items()) if name != "manifest.json"]
+            manifest["bundle_id"] = bundle.sha256(bundle.json_bytes(manifest["files"]))
+            contents["manifest.json"] = bundle.json_bytes(manifest)
+        self.rewrite_zip(inject)
+        with self.assertRaisesRegex(ValueError, "自动化|对话"):
+            bundle.unpack(self.archive, self.workspace)
+        self.assertFalse(self.workspace.exists())
 
     def test_size_limit_is_enforced_from_zip_headers(self):
         self.pack()

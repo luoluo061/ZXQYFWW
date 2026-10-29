@@ -34,6 +34,8 @@ SECRET_KEYS = {
     "password", "passwd", "secret", "api_key", "apikey", "access_token",
     "refresh_token", "authorization", "cookie", "cookies", "sessionid",
     "session_id", "browser_storage", "credentials", "automation_id", "thread_id",
+    "automation_ids", "automations", "automation_setup", "notification_receipts",
+    "threadid", "targetthreadid",
 }
 RESERVED_STEMS = {
     "automation_setup", "notification_receipts", "review_opening_receipts",
@@ -85,8 +87,9 @@ def read_profile(path: Path):
 def reject_secret_keys(value) -> None:
     if isinstance(value, dict):
         for key, item in value.items():
-            if str(key).casefold() in SECRET_KEYS:
-                raise ValueError("画像包含登录或凭据字段，请移除后再迁移：" + str(key))
+            normalized = str(key).casefold().replace("-", "_")
+            if normalized in SECRET_KEYS or re.search(r"(?:^|_)(?:password|passwd|token|secret|api_key|cookie|cookies)$", normalized):
+                raise ValueError("画像包含登录凭据或其他人员的自动化/对话标识，请移除后再迁移：" + str(key))
             reject_secret_keys(item)
     elif isinstance(value, list):
         for item in value:
@@ -364,6 +367,9 @@ def doctor(bundle_path=None, workspace_path=None):
 
 
 def main(argv=None):
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="私有企业画像及显式证据迁移；不会联网或注册定时任务")
     commands = parser.add_subparsers(dest="command", required=True)
     packing = commands.add_parser("pack")

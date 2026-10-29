@@ -21,7 +21,7 @@ class PortableRuntimeTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="sme-install-test-")
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.package = self.root / "package"
         self.runtime = self.package / "runtime"
         for relative in b.STATIC_FILES:

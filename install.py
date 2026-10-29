@@ -141,6 +141,9 @@ def doctor(skills_dir):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["install", "doctor"], nargs="?", default="install")
     parser.add_argument("--skills-dir", type=Path, default=Path.home() / ".agents" / "skills")
