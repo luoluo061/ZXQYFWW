@@ -58,6 +58,9 @@ def check(root=ROOT):
 
 
 if __name__ == "__main__":
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     try:
         print(json.dumps(check(), ensure_ascii=False, indent=2))
     except (ValueError, KeyError, OSError) as exc:

@@ -32,6 +32,7 @@ class CLIEncodingTests(unittest.TestCase):
                 "--db", "data/monitor.sqlite", "--out", "exports", cwd=workspace)
             run(ROOT / "tools/profile_bundle.py", "pack", "--profile", workspace / "profile.json",
                 "--out", base / "模拟画像.zip")
+            self.assertTrue(run(ROOT / "tools/check_package.py")["ok"])
 
 
 if __name__ == "__main__":
