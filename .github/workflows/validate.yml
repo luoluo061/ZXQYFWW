@@ -1,0 +1,16 @@
+name: Validate distribution
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - run: python -B -m unittest discover -s runtime/tests -v
+      - run: python -B -m unittest discover -s tests -v
+      - run: python tools/check_package.py

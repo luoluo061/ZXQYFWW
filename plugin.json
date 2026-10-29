@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sme-opportunity-monitor",
+  "version": "0.1.0",
+  "description": "中小企业政策与软件招标监测、人工复核及 Codex 自动化安装流程。",
+  "repository": "https://github.com/luoluo061/ZXQYFWW",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/sme-opportunity-monitor/SKILL.md",
+      "interface": {
+        "displayName": "中小企业政策与招标监测",
+        "shortDescription": "按企业画像发现机会，保留未推荐信息供人员复核。",
+        "developerName": "ZXQYFWW",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "defaultPrompt": ["安装政策与招标监测流程，先手动试跑，再为当前对话配置每日检查。"]
+      }
+    }
+  }
+}

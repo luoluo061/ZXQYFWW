@@ -1,0 +1,39 @@
+{
+  "version": "profile-needs-confirmation-1",
+  "company": {
+    "name": "待补充企业名称",
+    "registered_province": null,
+    "registered_city": null,
+    "located_province": null,
+    "located_city": null,
+    "source": "通用安装模板，尚未取得企业事实或证书证据。"
+  },
+  "confirmed_services": [],
+  "confirmed_qualifications": [],
+  "pending_verification": [
+    "企业主体、注册及纳税归属",
+    "真实业务或产品、资质及有效期",
+    "投标区域、驻场交付与履约资源",
+    "研发、财务、业绩及自筹条件"
+  ],
+  "discovery_keywords": {
+    "policy": ["科技项目", "科技计划", "科技成果转化", "高新技术企业", "科技型中小企业", "创新型中小企业", "专精特新"],
+    "tender": ["软件开发", "系统开发", "平台开发", "网站建设", "小程序", "APP", "软件升级", "软件维护", "信息系统", "数据治理"]
+  },
+  "keyword_note": "发现词为默认检索建议，不构成已核企业业务、资质或履约能力；由人员确认后再优化。",
+  "policy_scope": {
+    "priority_regions": [],
+    "priority_issuers": [],
+    "also_check": ["国家级且允许本企业参与的事项"],
+    "directions": ["科技项目申报", "资质评价认定"],
+    "scope_note": "先确认地区与主营业务，再检查科技项目和资质；未知条件保留待核。"
+  },
+  "tender_regions": {
+    "priority": [],
+    "outside": "review",
+    "note": "外地线索分别核实际交付地、驻场、售后和成本；电子投标不等于远程履约。"
+  },
+  "source_documents": [],
+  "reminder_days": [7, 3, 1],
+  "manual_mode": true
+}

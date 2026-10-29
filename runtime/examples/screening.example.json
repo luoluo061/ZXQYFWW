@@ -1,0 +1,28 @@
+{
+  "example_only": true,
+  "run_id": "EXAMPLE-DO-NOT-INGEST-AS-REAL-SCAN",
+  "checked_at": "2026-10-29T09:00:00+08:00",
+  "scope": "policy",
+  "coverage": [{"source_id": "example", "status": "partial", "queries": ["演示检索词"], "note": "仅展示字段；没有实际访问网站。"}],
+  "observations": [{
+    "kind": "policy",
+    "source_id": "example",
+    "list_url": "https://example.invalid/list",
+    "detail_url": "",
+    "original_url": "",
+    "original_verified": false,
+    "title": "演示科技项目（不是实际机会）",
+    "issuer": "演示主管部门",
+    "document_number": "EXAMPLE-1",
+    "reading_level": "标题",
+    "machine_bucket": "待核",
+    "machine_reason": "尚未核原文与主体条件，保留人员复核。",
+    "reason_code": "未知",
+    "condition_evidence": [{"label": "企业主体", "status": "unknown", "evidence": "企业证据未提供"}],
+    "stage": "unknown",
+    "query": "演示检索词",
+    "page": 1,
+    "region_filter": "待确认",
+    "evidence_path": "inputs/evidence/本轮来源证据.txt"
+  }]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "中小企业服务网机会监测"
+  short_description: "安装政策与软件招标监测流程，按企业画像筛选、人工复核并建立本地台账"
+  default_prompt: "使用 $sme-opportunity-monitor 安装本机政策与招标监测流程，先手动试跑，再在当前对话配置定时检查。"

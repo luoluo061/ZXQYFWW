@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+# Runtime data belongs outside this source repository.
+workspaces/
+private/
+releases/
+data/
+incoming/
+inputs/
+materials/
+exports/
+profile.json
+sources.json
+*.sqlite*
+*.zip
+*.pem
+*.key
+.env*
+!*.example.json

@@ -1,0 +1,29 @@
+{
+  "example_only": true,
+  "run_id": "EXAMPLE-DO-NOT-INGEST-AS-REAL-SCAN",
+  "checked_at": "2026-10-29T09:00:00+08:00",
+  "coverage": [{"source_id": "example", "status": "partial", "queries": ["演示检索词"], "note": "仅展示字段；没有实际访问任何网页。正式输入应记录查询、地区、分页、失败与缺口。"}],
+  "items": [{
+    "kind": "policy",
+    "source_id": "example",
+    "source_url": "https://example.invalid/list",
+    "source_is_list": true,
+    "original_url": "",
+    "original_verified": false,
+    "title": "演示科技项目（不是实际机会）",
+    "issuer": "演示主管部门",
+    "document_number": "EXAMPLE-1",
+    "published_at": "2026-10-29",
+    "stage": "unknown",
+    "deadline_at": null,
+    "regions": [],
+    "summary": "一句用途，依据实际原文填。",
+    "relevance_reason": "一句与已证实企业事实相关的理由。",
+    "hard_conditions": [{"label": "企业主体", "status": "unknown", "evidence": "企业证据尚未提供"}],
+    "key_conditions": ["最多3个优先供人员判断的关键门槛"],
+    "deadlines": [],
+    "body_text": "演示内容；实际使用填本轮可核来源内容或摘录。",
+    "evidence_path": "inputs/evidence/本轮来源证据.txt",
+    "next_action": "待人员判断：参与／先补资料／不参与"
+  }]
+}

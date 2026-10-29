@@ -1,0 +1,12 @@
+{
+  "version": "portable-sources-1",
+  "collector_mode": "Codex每轮通过正常浏览器或网页工具只读访问；monitor.py与human_review.py不联网采集。",
+  "sources": [
+    {"id": "chinasme_policy", "name": "中国中小企业服务网政策文件库", "url": "https://www.chinasme.cn/policy", "role": "候选发现及人工主动浏览", "status": "entry_requires_per_run_check", "limitations": ["筛选地区、关键词、分页与失败逐轮记录", "平台列表不代替正式原文及附件"]},
+    {"id": "chinasme_projects", "name": "中国中小企业服务网申报项目库", "url": "https://zcxm.chinasme.cn/policy", "role": "申报项目候选发现", "status": "entry_requires_per_run_check", "limitations": ["筛选后复核列表实际地区与日期", "AI摘要不代替正式窗口"]},
+    {"id": "chinasme_tenders", "name": "中国中小企业服务网找订单", "url": "https://chsme.qibiaoduo.com/result?key=project&bValue=&value=%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91", "role": "软件招采候选发现", "status": "entry_requires_per_run_check", "limitations": ["第三方登录及验证码可能需要本人处理", "详情返回可能重置筛选，需复核", "实际采购文件、标包与取文件截止分别核实"]},
+    {"id": "yn_kjt", "name": "云南省科学技术厅（仅适用地区确认后启用）", "url": "https://kjt.yn.gov.cn/", "role": "云南科技项目正式原文", "status": "region_requires_confirmation", "limitations": ["企业提交截止与部门推荐截止分开", "不适用云南企业时替换为本地区主管部门"]},
+    {"id": "yn_gxt", "name": "云南省工业和信息化厅（仅适用地区确认后启用）", "url": "https://gxt.yn.gov.cn/", "role": "云南资质及项目正式原文", "status": "region_requires_confirmation", "limitations": ["支持办法不等于当前开放办理", "不适用云南企业时替换为本地区主管部门"]},
+    {"id": "official_per_item", "name": "逐条确定的主管部门、采购人或法定发布平台", "url": null, "role": "正式原文、指南及采购文件", "status": "per_item_verification", "limitations": ["必须保存本轮实际来源和核验层级", "未取得、需登录或购标不能写已下载"]}
+  ]
+}
