@@ -47,8 +47,11 @@ def check(root=ROOT):
     manifest = json.loads((root / "plugin.json").read_text("utf-8"))
     if manifest["version"] != version or json.loads((root / "runtime/version.json").read_text("utf-8"))["version"] != version:
         raise ValueError("发行版本不一致")
-    skill = root / "skills/sme-opportunity-monitor/SKILL.md"
-    if not skill.read_text("utf-8").startswith("---\nname: sme-opportunity-monitor\n"):
+    name = manifest["name"]
+    if name not in {"sme-opportunity-monitor", "sme-finance-opportunities"}:
+        raise ValueError("未知的发行技能")
+    skill = root / "skills" / name / "SKILL.md"
+    if not skill.read_text("utf-8").startswith("---\nname: " + name + "\n"):
         raise ValueError("技能名称或frontmatter不正确")
     onboarding = manifest["extensions"]["com.openai"]["onboardingSkill"]
     if (root / onboarding).resolve() != skill.resolve():

@@ -1,19 +1,19 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "sme-opportunity-monitor",
-  "version": "0.1.1",
-  "description": "中小企业政策与软件招标监测、人工复核及 Codex 自动化安装流程。",
+  "name": "sme-finance-opportunities",
+  "version": "0.2.0-finance.1",
+  "description": "财务税惠、奖补、稳岗与政策性融资支持的筛选复核、每日台账和兑现跟踪。",
   "repository": "https://github.com/luoluo061/ZXQYFWW",
   "extensions": {
     "com.openai": {
-      "onboardingSkill": "./skills/sme-opportunity-monitor/SKILL.md",
+      "onboardingSkill": "./skills/sme-finance-opportunities/SKILL.md",
       "interface": {
-        "displayName": "中小企业政策与招标监测",
-        "shortDescription": "按企业画像发现机会，保留未推荐信息供人员复核。",
+        "displayName": "财务政策与资金监测",
+        "shortDescription": "按财务证据筛选政策，保留人工审核及到账享受的跟踪。",
         "developerName": "ZXQYFWW",
         "category": "Productivity",
         "capabilities": ["Read", "Write"],
-        "defaultPrompt": ["安装政策与招标监测流程，先手动试跑，再为当前对话配置每日检查。"]
+        "defaultPrompt": ["安装财务政策与政策性资金流程，先试跑，再在当前对话配置每日检查。"]
       }
     }
   }

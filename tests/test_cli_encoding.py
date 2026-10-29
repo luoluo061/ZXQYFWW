@@ -32,6 +32,10 @@ class CLIEncodingTests(unittest.TestCase):
                 "--db", "data/monitor.sqlite", "--out", "exports", cwd=workspace)
             run(ROOT / "tools/profile_bundle.py", "pack", "--profile", workspace / "profile.json",
                 "--out", base / "模拟画像.zip")
+            finance_workspace = base / "财务中文工作目录"
+            run(ROOT / "runtime/bootstrap.py", "init", "--workspace", finance_workspace,
+                "--edition", "finance", "--scope", "policy", "--operator", "模拟财务人员")
+            self.assertEqual(run(finance_workspace / "finance_workflow.py", "export", "--workspace", finance_workspace)["human_review_events"], 0)
             self.assertTrue(run(ROOT / "tools/check_package.py")["ok"])
 
 

@@ -1,0 +1,117 @@
+{
+  "version": "finance-profile-needs-confirmation-1",
+  "workflow": "finance",
+  "company": {
+    "name": "待补充企业名称",
+    "registered_province": null,
+    "registered_city": null,
+    "located_province": null,
+    "located_city": null,
+    "industry": null,
+    "source": "财务版通用安装模板，尚未导入企业主体、注册或纳税归属、业务及证书证据。办公地点不能替代注册、纳税、社保或项目归属。"
+  },
+  "confirmed_services": [],
+  "confirmed_qualifications": [],
+  "pending_verification": [
+    "企业主体、注册地、纳税地、社保缴纳地及项目所属地区的证据",
+    "纳税人身份、适用期间及变更记录；不能以当前身份推定历史所属期身份",
+    "分年度营业收入、利润总额、研发费用归集口径及研发辅助账情况",
+    "业务部门提供的资质编号、证面有效期和外部存续核验状态",
+    "已经享受的奖补、贴息、稳岗或税费优惠及对应年度、项目和不可重复享受条款",
+    "真实到账、税费享受、会计凭证和银行回单等办理证据",
+    "现有财务资料是否齐全、可提供范围、需协同部门和补齐时限"
+  ],
+  "discovery_keywords": {
+    "policy": [
+      "研发费用加计扣除", "六税两费", "稳岗返还", "扩岗补助", "就业补贴",
+      "贷款贴息", "财政奖补", "成果转化后补助", "人才补贴", "融资贴息",
+      "配套资助", "融资增信", "高企奖励", "专精特新奖补", "研发后补助"
+    ],
+    "tender": []
+  },
+  "keyword_note": "默认词只用于发现财务相关政策，不代表本企业已符合身份、资质、财务指标、用工或资金条件。按实际查阅和人员反馈调整，不为匹配公告改写企业事实。",
+  "finance_scope": {
+    "categories": ["税费优惠", "奖补兑现", "人才用工稳岗", "融资增信贴息"],
+    "policy_only": true,
+    "commercial_product_monitoring": false,
+    "qualification_boundary": "不主动高频检索高企、专精特新等业务资质首次认定通知；关注已有或待业务核定资质衍生的奖补、税费减免、维护和兑现要求。业务推送的认定文件仅由财务复核财务指标，技术符合性仍由业务判断。",
+    "funding_boundary": "找资金限有官方政策依据的奖补、费用补助、贴息、增信和配套资助，不扩展成商业银行贷款产品、授信报价或理财筛选。政策性增信、贴息资格不等于贷款或补助已批准。",
+    "include_national_applicable": true,
+    "region_rule": "已知经营或办公所在地、已确认注册地，或人员明确指定的目标地区，可用于启用省市来源发现候选；注册、纳税、社保或项目归属未知不阻塞地方线索检索。发现范围不等于已符合地方资格，逐事项适用性与参与判断仍核对应归属及证据。全国范围内允许本企业享受的政策保留，不因没有云南或昆明字样排除。通用画像地区全空且没有人员目标时，先查全国并补充发现地区，不自动假定云南或昆明。",
+    "required_review_dimensions": [
+      "官方正文及附件、文号、适用年度、有效期和申报或兑现窗口",
+      "政策要求—企业财务证据—资料缺口逐条对应，缺证据保持未知",
+      "先申报后拨付、免申即享或其他真实办理方式，卡片标签不能代替原文",
+      "企业提交、系统填报、主管部门推荐、补正和兑现等不同办理节点",
+      "同项目、同费用、同年度等重复享受限制，不能据政策名称不同默认可叠加",
+      "补助涉税提示及适用条件，以官方依据和财务人员复核为准，不预填税率或税额"
+    ],
+    "record_boundary": "推荐和材料准备不代表人员批准参与。人工筛选审核、参与决定、财务办理状态分别记录；到账、税费享受及归档仅依据真实人员回复和办理证据。"
+  },
+  "finance_profile": {
+    "tax_jurisdiction": {
+      "province": null, "city": null, "district": null, "competent_authority": null,
+      "effective_from": null, "effective_to": null, "evidence": [], "status": "unknown"
+    },
+    "taxpayer_identity": {
+      "value": null, "period_start": null, "period_end": null,
+      "changes": [], "evidence": [], "status": "unknown",
+      "note": "例如一般纳税人或小规模纳税人，须有身份和所属期证据；小规模纳税人不自动等于企业所得税小型微利企业。"
+    },
+    "annual_financial_metrics": {
+      "fiscal_year": null, "revenue": null, "profit_total": null, "currency_unit": null,
+      "financial_statement_scope": null, "audit_status": null, "evidence": [], "status": "unknown",
+      "note": "分年度追加已确认记录，保留报表口径和证据；空值不是零，营业收入、利润及应纳税所得额不能互相替代。"
+    },
+    "rd_expense_collection": {
+      "fiscal_year": null, "amount": null, "currency_unit": null,
+      "accounting_scope": null, "tax_deduction_scope": null,
+      "auxiliary_ledger_established": null, "project_detail_available": null,
+      "evidence": [], "status": "unknown",
+      "note": "研发费用会计归集、政策统计及税前扣除口径分别核对；未见辅助账不直接判定没有。"
+    },
+    "employment_and_social_insurance": {
+      "period_start": null, "period_end": null, "insured_region": null,
+      "employee_count": null, "eligible_employee_groups": [],
+      "payroll_available": null, "social_insurance_records_available": null,
+      "evidence": [], "status": "unknown",
+      "note": "只在人才、用工、稳岗事项需要时核人数、人员条件、缴费及所属期，不从企业名称或行业推定满足。"
+    },
+    "qualification_records": [],
+    "qualification_record_fields": [
+      "资质名称", "主体", "编号", "有效期", "业务提供人或材料来源", "证据路径", "外部存续核验状态"
+    ],
+    "benefits_received": [],
+    "benefit_record_fields": [
+      "政策或事项编号", "所属年度或税费所属期", "项目或费用范围", "支持类型",
+      "人员确认的办理状态", "真实到账日期或优惠享受日期", "实际金额及单位（有证据才填）",
+      "会计凭证号或享受证明", "银行回单或申报凭据", "原文及不重复享受依据", "确认人及时间"
+    ],
+    "benefit_note": "已批准、待拨付、已到账、已享受税费优惠分别记录；税费享受不必然发生现金到账。未知或未提供的历史享受记录不写成从未享受。",
+    "current_materials": [
+      {"name": "纳税申报表", "period": null, "available": null, "evidence": [], "status": "unknown"},
+      {"name": "财务报表及账套凭证", "period": null, "available": null, "evidence": [], "status": "unknown"},
+      {"name": "银行回单", "period": null, "available": null, "evidence": [], "status": "unknown"},
+      {"name": "社保及工资表", "period": null, "available": null, "evidence": [], "status": "unknown"},
+      {"name": "发票及合同", "period": null, "available": null, "evidence": [], "status": "unknown"},
+      {"name": "研发辅助账及项目明细", "period": null, "available": null, "evidence": [], "status": "unknown"}
+    ],
+    "pending_material_coordination": [],
+    "update_triggers": [
+      "纳税身份或主管税务机关变更", "业务部门确认新增或变化资质",
+      "奖补、贴息资金真实到账或税费优惠实际享受", "研发费用或归集口径重大变动",
+      "发现财务资料缺口或原始凭证更新", "人员复核发现画像事实与原文条件不一致"
+    ],
+    "profile_evidence_rule": "本模板没有任何已核企业事实。导入旧企业画像后保留其真实业务和证据，并补齐财务模式及未知字段；人工确认财务信息后留来源、所属期与确认时间。"
+  },
+  "policy_scope": {
+    "priority_regions": [],
+    "priority_issuers": [],
+    "also_check": ["国家级且允许本企业享受的财税、奖补、就业稳岗和政策性贴息增信事项"],
+    "directions": ["税费优惠", "奖补兑现", "人才用工稳岗", "融资增信贴息"],
+    "scope_note": "财务版不以科技项目和资质认定首次申报为主。省市优先范围由真实画像确认后填写，不能把通用来源中的云南、昆明当成本企业已核注册或纳税地。"
+  },
+  "source_documents": [],
+  "reminder_days": [7, 3, 1],
+  "manual_mode": true
+}

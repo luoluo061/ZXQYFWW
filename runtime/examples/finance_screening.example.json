@@ -1,0 +1,29 @@
+{
+  "example_only": true,
+  "workflow": "finance",
+  "run_id": "EXAMPLE-FINANCE-NOT-A-REAL-SCAN",
+  "checked_at": "2026-10-29T09:00:00+08:00",
+  "scope": "policy",
+  "coverage": [{"source_id": "example", "status": "partial", "queries": ["演示财务关键词"], "regions": ["按真实画像地区"], "note": "仅展示格式，未实际访问网站。"}],
+  "observations": [{
+    "kind": "policy",
+    "source_id": "example",
+    "list_url": "https://example.invalid/finance-list",
+    "detail_url": "https://example.invalid/finance-notice",
+    "original_url": "",
+    "original_verified": false,
+    "title": "演示奖补兑现通知，不是实际机会",
+    "issuer": "演示主管部门",
+    "document_number": "EXAMPLE-FINANCE-1",
+    "reading_level": "标题",
+    "machine_bucket": "待核",
+    "machine_reason": "尚未核原文和企业财务证据；保留人员核查，不把缺料等同于不适用。",
+    "reason_code": "未知",
+    "condition_evidence": [{"label": "财务条件", "status": "unknown", "evidence": "企业证明未提供"}],
+    "query": "演示财务关键词",
+    "page": 1,
+    "region_filter": "按真实画像地区",
+    "stage": "unknown",
+    "evidence_path": "inputs/evidence/实际本轮来源证据.txt"
+  }]
+}

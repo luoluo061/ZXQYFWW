@@ -7,6 +7,7 @@ send messages, or create automation jobs.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -25,6 +26,9 @@ STATIC_FILES = ("monitor.py", "human_review.py", "profile.example.json",
                 "sources.example.json", "version.json", "examples/incoming.example.json",
                 "examples/screening.example.json", "tests/test_monitor.py",
                 "tests/test_human_review.py", "tests/test_monitor_review_integration.py")
+FINANCE_FILES = ("finance_workflow.py", "profile.finance.example.json", "sources.finance.example.json",
+                 "examples/finance_incoming.example.json", "examples/finance_screening.example.json",
+                 "tests/test_finance_workflow.py")
 FORBIDDEN_KEYS = {"password", "passwd", "secret", "api_key", "apikey", "access_token",
                   "refresh_token", "cookie", "cookies", "authorization", "automation_id",
                   "automation_ids", "automations", "automation_setup", "notification_receipts",
@@ -95,16 +99,18 @@ def ensure_profile(profile):
     return profile
 
 
-def source_files(root, scope, operator):
+def source_files(root, scope, operator, edition="general"):
     contents = {}
-    for relative in STATIC_FILES:
+    for relative in STATIC_FILES + (FINANCE_FILES if edition == "finance" else ()):
         source = RUNTIME / relative
         if not source.is_file() or source.is_symlink():
             raise ValueError("分发包缺少必要文件：" + relative)
         contents[relative] = source.read_bytes()
-    templates = RUNTIME.parent / "templates" / "workspace"
+    templates = RUNTIME.parent / "templates" / ("finance-workspace" if edition == "finance" else "workspace")
     # Templates are maintained in the repository (and bundled beside installed
     # skills). Explicit extensions and path checks keep this an allowlist.
+    if edition == "finance" and not templates.is_dir():
+        raise ValueError("财务分发包缺少templates/finance-workspace")
     if templates.is_dir():
         for source in sorted(templates.rglob("*")):
             if source.is_dir():
@@ -178,7 +184,7 @@ def install_files(root, contents, prior):
     return result, conflicts
 
 
-def initial_values(scope, operator, root):
+def initial_values(scope, operator, root, edition="general"):
     schedules = []
     if scope == "both":
         schedules.append({"key": "morning", "scope": "both", "local_time": "09:00", "review_opening": True})
@@ -187,11 +193,15 @@ def initial_values(scope, operator, root):
     if scope == "tender":
         schedules.append({"key": "tender_morning", "scope": "tender", "local_time": "09:00", "review_opening": False})
     schedules.append({"key": "afternoon", "scope": scope, "local_time": "16:30", "review_opening": False})
+    for schedule in schedules:
+        schedule["edition"] = edition
+        if edition == "finance":
+            schedule["topic"] = "财务政策与政策性资金"
     return {
-        INSTALLATION: {"name": NAME, "workspace": root.as_posix(), "operator": operator, "scope": scope,
+        INSTALLATION: {"name": NAME, "edition": edition, "workspace": root.as_posix(), "operator": operator, "scope": scope,
                        "timezone": "Asia/Shanghai", "initialized_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                        "profile_ready": False, "collection_performed": False},
-        "data/automation_setup.json": {"status": "not_registered", "timezone": "Asia/Shanghai",
+        "data/automation_setup.json": {"status": "not_registered", "edition": edition, "timezone": "Asia/Shanghai",
              "delivery": "recipient_current_codex_conversation", "automations": [],
              "requested_schedule": schedules, "daily_summary_time": None,
              "daily_summary_status": "待团队确认", "participation": "human_only", "default_review_state": "待人员判断",
@@ -211,6 +221,8 @@ def export_empty(root):
         ["human_review.py", "export", "--db", "data/human_review.sqlite", "--out", "exports"],
         ["monitor.py", "export", "--profile", "profile.json", "--db", "data/monitor.sqlite", "--out", "exports"],
     ]
+    if read_json(root / INSTALLATION).get("edition") == "finance":
+        commands.append(["finance_workflow.py", "export", "--workspace", str(root)])
     for command in commands:
         completed = subprocess.run([sys.executable, "-B", *command], cwd=root, env=env,
                                    text=True, encoding="utf-8", capture_output=True)
@@ -218,25 +230,119 @@ def export_empty(root):
             raise ValueError("初始化空台账失败：" + completed.stderr.strip())
 
 
+def finance_profile(profile):
+    """Apply this department's search configuration without inventing company facts."""
+    result = copy.deepcopy(ensure_profile(profile))
+    template = read_json(RUNTIME / "profile.finance.example.json")
+    first_conversion = result.get("workflow") != "finance"
+    result["workflow"] = "finance"
+    def fill_unknown_fields(target, defaults):
+        for key, value in defaults.items():
+            if key not in target:
+                target[key] = copy.deepcopy(value)
+            elif isinstance(value, dict) and isinstance(target[key], dict):
+                fill_unknown_fields(target[key], value)
+    for field in ("finance_profile", "finance_scope"):
+        result.setdefault(field, {})
+        if not isinstance(result[field], dict):
+            raise ValueError("财务画像字段须为对象：" + field)
+        fill_unknown_fields(result[field], template.get(field, {}))
+    keywords = result.setdefault("discovery_keywords", {})
+    if not isinstance(keywords, dict):
+        raise ValueError("discovery_keywords须为对象")
+    if first_conversion:
+        result["finance_scope"].setdefault("previous_policy_keywords", copy.deepcopy(keywords.get("policy", [])))
+        keywords["policy"] = copy.deepcopy(template["discovery_keywords"]["policy"])
+        policy_scope = result.setdefault("policy_scope", {})
+        if not isinstance(policy_scope, dict):
+            raise ValueError("policy_scope须为对象")
+        result["finance_scope"].setdefault("previous_policy_directions", copy.deepcopy(policy_scope.get("directions", [])))
+        policy_scope["directions"] = copy.deepcopy(template["policy_scope"]["directions"])
+        policy_scope["scope_note"] = template["policy_scope"]["scope_note"]
+    else:
+        keywords.setdefault("policy", copy.deepcopy(template["discovery_keywords"]["policy"]))
+    result["workflow_note"] = "财务分支配置检索和记录方式；不改变企业主体、已有资质及其证据，财税事实由人员补充核验。"
+    return result
+
+
+def configure_finance(args):
+    root = workspace_path(args.workspace)
+    owned_manifest(root, required=True)
+    settings = read_json(root / INSTALLATION)
+    if settings.get("edition") != "finance":
+        raise ValueError("须先在新的独立目录初始化财务版，不能原地改通用工作区")
+    path = safe_target(root, "profile.json")
+    original = path.read_bytes()
+    profile = finance_profile(read_json(path))
+    if profile != read_json(path):
+        backup = safe_target(root, "inputs/profile_before_finance_config_" + sha(original)[:12] + ".json")
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if backup.exists() and backup.read_bytes() != original:
+            raise ValueError("画像备份冲突，未修改")
+        backup.write_bytes(original)
+        write_json(path, profile)
+    source_path = safe_target(root, "sources.json")
+    original_sources = source_path.read_bytes()
+    source_config, selected = finance_sources(profile, read_json(source_path))
+    if source_config != read_json(source_path):
+        backup = safe_target(root, "inputs/sources_before_finance_config_" + sha(original_sources)[:12] + ".json")
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if backup.exists() and backup.read_bytes() != original_sources:
+            raise ValueError("来源配置备份冲突，未覆盖")
+        backup.write_bytes(original_sources)
+        write_json(source_path, source_config)
+    return {"status": "finance_profile_configured", "workspace": root.as_posix(),
+            "company_facts_preserved": True, "discovery_sources_enabled": selected,
+            "eligibility_inferred": False, "automations_registered": False, "collection_performed": False}
+
+
+def finance_sources(profile, existing=None):
+    """A known search region enables discovery, never a financial eligibility pass."""
+    result = copy.deepcopy(existing if existing is not None else read_json(RUNTIME / "sources.finance.example.json"))
+    company = profile.get("company", {})
+    regions = [company.get(field) for field in ("located_province", "located_city", "registered_province", "registered_city")]
+    regions.extend(profile.get("policy_scope", {}).get("priority_regions", []))
+    known = [str(value) for value in regions if isinstance(value, str) and value.strip()]
+    selected = []
+    for source in result.get("sources", []):
+        activation = source.get("activation", {})
+        if not activation.get("discovery_on_known_location") or source.get("activation_decision") or source.get("enabled") is True:
+            continue
+        city, province = activation.get("city"), activation.get("province")
+        target = city or province
+        if target and any(str(target) in region for region in known):
+            source["enabled"] = True
+            source["activation_decision"] = {"mode": "known_region_discovery", "target": target,
+                "eligibility": "unknown", "note": "依据已知所在地或检索目标启用候选发现；注册、纳税、用工及项目归属仍逐政策待核。"}
+            selected.append(source["id"])
+    return result, selected
+
+
 def initialize(args):
+    edition = getattr(args, "edition", "general")
+    if edition == "finance" and args.scope != "policy":
+        raise ValueError("财务版须使用--scope policy；财务资金与税惠按政策事项跟踪，不检索招标")
     root = workspace_path(args.workspace)
     prior = owned_manifest(root)
     if prior:
         if args.profile_import:
             raise ValueError("已安装目录不自动替换画像；先由人员审查后在本地单独编辑")
         existing = read_json(safe_target(root, INSTALLATION))
-        if existing["scope"] != args.scope or existing["operator"] != args.operator:
+        if existing["scope"] != args.scope or existing["operator"] != args.operator or existing.get("edition", "general") != edition:
             raise ValueError("已安装目录的scope/operator不同；升级保留原设置，更换人员请使用独立目录")
         return upgrade(args)
     if not args.operator.strip():
         raise ValueError("--operator 不能为空")
-    profile = ensure_profile(read_json(args.profile_import) if args.profile_import else read_json(RUNTIME / "profile.example.json"))
-    values = initial_values(args.scope, args.operator.strip(), root)
+    profile_name = "profile.finance.example.json" if edition == "finance" else "profile.example.json"
+    profile = ensure_profile(read_json(args.profile_import) if args.profile_import else read_json(RUNTIME / profile_name))
+    if edition == "finance":
+        profile = finance_profile(profile)
+    values = initial_values(args.scope, args.operator.strip(), root, edition)
     protected = ["profile.json", "sources.json", "data/monitor.sqlite", "data/human_review.sqlite", MANIFEST, *values]
     for relative in protected:
         if safe_target(root, relative).exists():
             raise ValueError("目录已有未登记的配置或运行数据，请使用新的独立目录：" + relative)
-    contents = source_files(root, args.scope, args.operator.strip())
+    contents = source_files(root, args.scope, args.operator.strip(), edition)
     # Code-file preflight happens before creating configuration or empty ledgers.
     for relative in contents:
         if safe_target(root, relative).exists():
@@ -246,13 +352,14 @@ def initialize(args):
     for folder in ("data", "incoming", "inputs/evidence", "materials", "exports/history"):
         safe_target(root, folder).mkdir(parents=True, exist_ok=True)
     write_json(root / "profile.json", profile)
-    write_json(root / "sources.json", read_json(RUNTIME / "sources.example.json"))
+    source_config = finance_sources(profile)[0] if edition == "finance" else read_json(RUNTIME / "sources.example.json")
+    write_json(root / "sources.json", source_config)
     for relative, value in values.items():
         write_json(safe_target(root, relative), value)
     version = read_json(RUNTIME / "version.json")["version"]
-    write_json(root / MANIFEST, {"name": NAME, "version": version, "files": files, "conflicts": conflicts})
+    write_json(root / MANIFEST, {"name": NAME, "edition": edition, "version": version, "files": files, "conflicts": conflicts})
     export_empty(root)
-    return {"status": "initialized", "workspace": root.as_posix(), "scope": args.scope,
+    return {"status": "initialized", "edition": edition, "workspace": root.as_posix(), "scope": args.scope,
             "operator": args.operator.strip(), "version": version, "profile_imported": bool(args.profile_import),
             "automations_registered": False, "collection_performed": False,
             "next": "由人员核对画像及来源；Codex在本人的当前对话真实试跑后，通过自动化工具登记每日09:00和16:30。"}
@@ -262,10 +369,11 @@ def upgrade(args):
     root = workspace_path(args.workspace)
     prior = owned_manifest(root, required=True)
     settings = read_json(safe_target(root, INSTALLATION))
-    contents = source_files(root, settings["scope"], settings["operator"])
+    edition = settings.get("edition", "general")
+    contents = source_files(root, settings["scope"], settings["operator"], edition)
     files, conflicts = install_files(root, contents, prior)
     version = read_json(RUNTIME / "version.json")["version"]
-    write_json(root / MANIFEST, {"name": NAME, "version": version, "files": files, "conflicts": conflicts})
+    write_json(root / MANIFEST, {"name": NAME, "edition": edition, "version": version, "files": files, "conflicts": conflicts})
     return {"status": "upgraded", "workspace": root.as_posix(), "version": version,
             "conflicts": conflicts, "profile_preserved": True, "databases_preserved": True,
             "automation_registration_preserved": True, "collection_performed": False}
@@ -288,6 +396,12 @@ def doctor(args):
             warnings.append("升级副本待合并：" + entry["pending_update"])
     try:
         profile = ensure_profile(read_json(safe_target(root, "profile.json")))
+        settings = read_json(safe_target(root, INSTALLATION))
+        if settings.get("edition") == "finance":
+            if profile.get("workflow") != "finance" or not isinstance(profile.get("finance_profile"), dict):
+                warnings.append("私有画像尚未补财务工作流；从完整包运行configure-finance后再试跑")
+            if profile.get("policy_scope", {}).get("directions") != ["税费优惠", "奖补兑现", "人才用工稳岗", "融资增信贴息"]:
+                warnings.append("画像检索方向与财务四类默认范围不同，先核人员最新配置")
         if profile["company"]["name"].startswith("待补充") or not profile.get("confirmed_services"):
             warnings.append("企业画像尚未完成，不能据默认模板认定企业符合条件")
         for document in profile.get("source_documents", []):
@@ -338,15 +452,16 @@ def main(argv=None):
     command.add_argument("--workspace", required=True)
     command.add_argument("--scope", choices=("policy", "tender", "both"), required=True)
     command.add_argument("--operator", required=True)
+    command.add_argument("--edition", choices=("general", "finance"), default="general")
     command.add_argument("--profile-import")
-    for name in ("doctor", "upgrade"):
+    for name in ("doctor", "upgrade", "configure-finance"):
         command = commands.add_parser(name)
         command.add_argument("--workspace", required=True)
     args = parser.parse_args(argv)
     try:
         if sys.version_info < (3, 10):
             raise ValueError("需要Python 3.10或以上；可让Codex查询其bundled Python路径")
-        result = {"init": initialize, "upgrade": upgrade, "doctor": doctor}[args.command](args)
+        result = {"init": initialize, "upgrade": upgrade, "doctor": doctor, "configure-finance": configure_finance}[args.command](args)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 2 if result.get("errors") else 0
     except (ValueError, OSError, KeyError, TypeError, json.JSONDecodeError) as error:

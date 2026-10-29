@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-SKILL_NAME = "sme-opportunity-monitor"
+SKILL_NAME = "sme-finance-opportunities"
+EDITION_SKILLS = {"finance": SKILL_NAME, "general": "sme-opportunity-monitor"}
 MARKER = ".zxqyfww-skill-install.json"
 DATA_DIRS = {"data", "inputs", "exports", "incoming", "materials", "private", "workspaces"}
 
@@ -30,9 +31,9 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def payload(root=ROOT):
+def payload(root=ROOT, edition="finance"):
     """Use an explicit source allowlist, not a repository-wide recursive copy."""
-    skill = root / "skills" / SKILL_NAME
+    skill = root / "skills" / EDITION_SKILLS[edition]
     if not skill.is_dir():
         raise ValueError("请从完整发行包或仓库运行 install.py，不能只下载这一个脚本。")
     files = {}
@@ -67,11 +68,12 @@ def payload(root=ROOT):
     return files
 
 
-def install(skills_dir, root=ROOT):
+def install(skills_dir, root=ROOT, edition="finance"):
     skills_dir = Path(skills_dir).expanduser().absolute()
     reject_links(skills_dir)
     skills_dir = skills_dir.resolve()
-    target = skills_dir / SKILL_NAME
+    name = EDITION_SKILLS[edition]
+    target = skills_dir / name
     reject_links(target)
     marker = target / MARKER
     reject_links(marker)
@@ -80,11 +82,11 @@ def install(skills_dir, root=ROOT):
         if not marker.is_file():
             raise ValueError("目标已存在且不是本安装器管理的技能，请先人工检查：" + str(target))
         old = json.loads(marker.read_text("utf-8"))
-        if old.get("name") != SKILL_NAME:
+        if old.get("name") != name:
             raise ValueError("安装标记不匹配")
         for rel in old.get("files", {}):
             safe_relative(rel)
-    files = payload(root)
+    files = payload(root, edition)
     conflicts = []
     managed = dict(old.get("files", {}))
     # Plan all writes, including conflict copies, before changing any file.
@@ -112,7 +114,7 @@ def install(skills_dir, root=ROOT):
     for dest, data in plan:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
-    record = {"name": SKILL_NAME, "version": (root / "VERSION").read_text("utf-8").strip(),
+    record = {"name": name, "edition": edition, "version": (root / "VERSION").read_text("utf-8").strip(),
               "files": managed, "pending_conflicts": conflicts,
               "scheduler_registered": False}
     marker.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", "utf-8")
@@ -120,10 +122,10 @@ def install(skills_dir, root=ROOT):
             "automation_status": "未创建；需要接收人的 Codex 在当前对话中登记。"}
 
 
-def doctor(skills_dir):
+def doctor(skills_dir, edition="finance"):
     skills_dir = Path(skills_dir).expanduser().absolute()
     reject_links(skills_dir)
-    target = skills_dir.resolve() / SKILL_NAME
+    target = skills_dir.resolve() / EDITION_SKILLS[edition]
     marker = target / MARKER
     reject_links(marker)
     if not marker.is_file():
@@ -146,10 +148,11 @@ def main():
             stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["install", "doctor"], nargs="?", default="install")
+    parser.add_argument("--edition", choices=sorted(EDITION_SKILLS), default="finance")
     parser.add_argument("--skills-dir", type=Path, default=Path.home() / ".agents" / "skills")
     args = parser.parse_args()
     try:
-        result = install(args.skills_dir) if args.command == "install" else doctor(args.skills_dir)
+        result = install(args.skills_dir, edition=args.edition) if args.command == "install" else doctor(args.skills_dir, args.edition)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if not result.get("conflicts") and result.get("ok", True) else 2
     except (ValueError, OSError, json.JSONDecodeError) as exc:

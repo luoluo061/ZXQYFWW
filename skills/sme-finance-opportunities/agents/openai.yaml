@@ -1,0 +1,4 @@
+interface:
+  display_name: "财务政策与资金监测"
+  short_description: "查财税奖补稳岗贴息，核财务证据并跟踪资金兑现，保留人员审查和凭证归档"
+  default_prompt: "使用 $sme-finance-opportunities 安装财务政策与资金监测，先试跑再设置每日检查。"

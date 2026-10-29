@@ -1,0 +1,110 @@
+{
+  "version": "finance-sources-entry-check-2026-10-29",
+  "workflow": "finance",
+  "collector_mode": "Codex每轮使用正常网页或浏览器工具实际访问；本地程序只处理已采集资料，不联网查新。配置中的入口核验记录不是政策采集，也不代表下一轮仍可访问。",
+  "activation_rule": "全国来源和服务网入口用于发现财务政策；通用画像全空且无人员目标时，区域来源默认未启用。已知located经营/办公所在地、已确认registered注册地，或人员明确指定的目标地区及policy_scope.priority_regions，可用于启用对应省市来源发现候选。注册、纳税、社保或项目归属未知不能阻塞地方线索发现；enabled只表示发现范围，绝不表示企业符合政策。逐事项正式适用性与参与前分别核对应归属，办公地不能替代纳税或社保地。启用后每轮仍记实际检索、分页、成功或失败，不能把配置来源数当完成覆盖数。",
+  "sources": [
+    {
+      "id": "chinasme_policy", "name": "中国中小企业服务网政策文件库",
+      "url": "https://www.chinasme.cn/policy", "enabled": true,
+      "role": "财务政策候选发现、文件库地区筛选与人员主动浏览",
+      "status": "entry_identity_only_requires_browser_check",
+      "entry_verification": {"date": "2026-10-29", "result": "网页工具仅取得平台说明，未取得本轮政策列表", "authority_reference": "https://www.chinasme.cn/policy"},
+      "limitations": ["一次执行一个关键词并核对实际地区标签、查询及分页", "通用平台介绍或总条数不算已读政策", "全国适用本企业的事项另查，不机械排除全国政策", "平台摘要不代替正式原文、附件和财务门槛"]
+    },
+    {
+      "id": "chinasme_projects", "name": "中国中小企业服务网申报项目库",
+      "url": "https://zcxm.chinasme.cn/policy", "enabled": true,
+      "role": "奖补、人才用工、贴息与配套资助项目的交叉发现",
+      "status": "entry_not_read_requires_browser_check",
+      "entry_verification": {"date": "2026-10-29", "result": "网页工具未能访问，项目列表未核", "authority_reference": "https://www.chinasme.cn/policy"},
+      "limitations": ["本轮须实际打开，失败就记缺口，不报无新增", "地区选项以实际页面为准，没有市级筛选时返回文件库或本级官网", "系统填报截止、企业提交和部门推荐分别核对", "项目卡片和AI摘要不能证明开放受理或资金可得"]
+    },
+    {
+      "id": "national_tax", "name": "国家税务总局",
+      "url": "https://www.chinatax.gov.cn/", "enabled": true,
+      "role": "全国税费政策、官方解读及办理口径的原文核验",
+      "status": "official_homepage_read_no_item_check",
+      "entry_verification": {"date": "2026-10-29", "result": "首页与政策法规导航可读，未开展逐条政策筛选", "authority_reference": "https://www.chinatax.gov.cn/"},
+      "limitations": ["核政策适用年度、身份、税种、所属期及有效性，不沿用旧税率或额度", "全国政策按本企业适用性保留，地方执行细节另核", "办税登录和提交由人员正常授权完成，发现阶段不申报"]
+    },
+    {
+      "id": "national_finance", "name": "财政部",
+      "url": "https://www.mof.gov.cn/", "enabled": true,
+      "role": "全国财政奖补、财税政策与资金管理依据的补充核验",
+      "status": "official_link_confirmed_entry_body_unread",
+      "entry_verification": {"date": "2026-10-29", "result": "国家税务总局及云南省政府导航确认入口，本轮未取得首页正文", "authority_reference": "https://www.chinatax.gov.cn/"},
+      "limitations": ["管理办法或资金预算不等于本企业当前可申报", "按实际正文和附件核支持口径、重复享受及拨付要求", "入口打不开保留失败范围，不能把旧文或转载写成已核正式原文"]
+    },
+    {
+      "id": "yn_tax", "name": "国家税务总局云南省税务局（确认发现地区后启用）",
+      "url": "https://yunnan.chinatax.gov.cn/", "enabled": false,
+      "role": "云南税费优惠、地方执行与申报享受要求核验",
+      "status": "official_link_confirmed_entry_unread",
+      "activation": {"type": "confirmed_profile_region", "province": "云南", "city": null, "evidence_required": true, "discovery_on_known_location": true, "note": "发现地区可依据已知located、registered或人员指定目标；资格归属须另核，发现证据不要求先取得注册或纳税证明。"},
+      "entry_verification": {"date": "2026-10-29", "result": "税务总局省局导航及云南省政府导航确认域名，本轮入口不可读", "authority_reference": "https://www.chinatax.gov.cn/"},
+      "limitations": ["可按已知经营地、注册地或人员目标发现云南税费线索；适用性另核纳税及办理归属，不能由办公地推定主管税务机关", "必须区分身份变更前后所属期和具体税种条件", "电子税务局正常登录由人员完成，不保存会话凭据", "入口未读不代表没有政策或本企业不适用"]
+    },
+    {
+      "id": "yn_finance", "name": "云南省财政厅（确认发现地区后启用）",
+      "url": "https://czt.yn.gov.cn/", "enabled": false,
+      "role": "地方财政奖补、贴息、配套资助及兑现拨付的正式依据",
+      "status": "official_link_confirmed_entry_unread",
+      "activation": {"type": "confirmed_profile_region", "province": "云南", "city": null, "evidence_required": true, "discovery_on_known_location": true, "note": "已知located、registered或人员目标可启用发现；注册、纳税或项目等资格归属未知不阻塞检索，仍须逐事项核验。"},
+      "entry_verification": {"date": "2026-10-29", "result": "云南省政府导航确认财政厅及阳光云财入口域名，首页读取返回405", "authority_reference": "https://www.yn.gov.cn/"},
+      "limitations": ["不从资金管理办法推定本期窗口开放或预计到账", "分别核项目年度、企业申请、部门推荐及拨付节点", "免申即享也要核资格、名单和实际到账，不自动记已享受", "官方未取得的指南或申报材料不标已下载"]
+    },
+    {
+      "id": "yn_hrss", "name": "云南省人力资源和社会保障厅（确认发现地区后启用）",
+      "url": "https://hrss.yn.gov.cn/", "enabled": false,
+      "role": "人才用工、就业、扩岗及稳岗支持的政策和办理要求",
+      "status": "official_homepage_read_no_item_check",
+      "activation": {"type": "confirmed_profile_region", "province": "云南", "city": null, "evidence_required": true, "discovery_on_known_location": true, "note": "已知located、registered或人员目标可启用发现；用工、社保及补贴资格归属始终另核。"},
+      "entry_verification": {"date": "2026-10-29", "result": "首页与政策导航可读，尚未逐条筛选财务适用事项", "authority_reference": "https://www.yn.gov.cn/"},
+      "limitations": ["核用工、社保、人数、人员类别和补贴所属期，缺资料保持待核", "岗位招聘和个人培训信息不直接当企业奖补", "省级政策与市县具体办理要求分别核验"]
+    },
+    {
+      "id": "yn_gxt", "name": "云南省工业和信息化厅（确认发现地区后启用）",
+      "url": "https://gxt.yn.gov.cn/", "enabled": false,
+      "role": "企业资质衍生奖补、工业和信息化资金及兑现通知",
+      "status": "official_link_confirmed_entry_unread",
+      "activation": {"type": "confirmed_profile_region", "province": "云南", "city": null, "evidence_required": true, "discovery_on_known_location": true, "note": "已知located、registered或人员目标可启用发现；具体奖励对象、属地和资质条件仍待正式核验。"},
+      "entry_verification": {"date": "2026-10-29", "result": "云南省政府导航和该厅官方检索结果确认入口，直接读取首页返回405", "authority_reference": "https://www.yn.gov.cn/"},
+      "limitations": ["重点查已有资质对应奖补和兑现，不把业务认定首次申报作为财务主线", "业务认定资料由业务核技术条件，财务只复核对应财务指标", "支持办法、认定公示与开放申领奖励分别辨认"]
+    },
+    {
+      "id": "yn_kjt", "name": "云南省科学技术厅（确认发现地区后启用）",
+      "url": "https://kjt.yn.gov.cn/", "enabled": false,
+      "role": "研发后补助、成果转化奖补、科技资助及兑现节点核验",
+      "status": "official_link_confirmed_entry_unread",
+      "activation": {"type": "confirmed_profile_region", "province": "云南", "city": null, "evidence_required": true, "discovery_on_known_location": true, "note": "已知located、registered或人员目标可启用发现；项目、纳税和支持对象条件按正式政策逐条核验。"},
+      "entry_verification": {"date": "2026-10-29", "result": "云南省政府导航及该厅官方检索结果确认域名，直接读取首页返回405", "authority_reference": "https://www.yn.gov.cn/"},
+      "limitations": ["科技项目与已获资助的后补助或兑现不要混为同一阶段", "核研发归集、成果年度、财务材料及不重复享受条件", "企业提交、系统填报、部门推荐和资金兑现节点分别记录"]
+    },
+    {
+      "id": "yn_government", "name": "云南省人民政府（确认发现地区后启用）",
+      "url": "https://www.yn.gov.cn/", "enabled": false,
+      "role": "跨部门政策交叉核验、失效链接补查及官方部门入口定位",
+      "status": "official_homepage_read_no_item_check",
+      "activation": {"type": "confirmed_profile_region", "province": "云南", "city": null, "evidence_required": true, "discovery_on_known_location": true, "note": "已知located、registered或人员目标可启用发现；启用仅表示检索地区，不能当本企业政策资格已确认。"},
+      "entry_verification": {"date": "2026-10-29", "result": "省政府首页及部门导航可读，未将首页新闻当政策已采集", "authority_reference": "https://www.yn.gov.cn/"},
+      "limitations": ["流程优化或事项清单不等于直接补助，必要时仅历史或配套线索留存", "官方转发与原发机关原文核验层级分开标", "部门入口失效时按完整政策标题补查，仍保留原失败记录"]
+    },
+    {
+      "id": "km_government", "name": "昆明市人民政府（确认发现地区后启用）",
+      "url": "https://www.km.gov.cn/", "enabled": false,
+      "role": "昆明本级财务奖补和办理通知、财政人社等部门官网入口定位",
+      "status": "official_link_confirmed_entry_unread",
+      "activation": {"type": "confirmed_profile_region", "province": "云南", "city": "昆明", "evidence_required": true, "discovery_on_known_location": true, "note": "已知昆明经营/办公地、注册地或人员明确目标即可发现；注册、纳税、社保和项目归属须分别确认。"},
+      "entry_verification": {"date": "2026-10-29", "result": "云南省政府州市导航确认域名，本轮入口读取超时", "authority_reference": "https://www.yn.gov.cn/"},
+      "limitations": ["可按已知昆明经营/办公地、注册地或人员目标启用候选发现，资格归属未知不停止查地方线索；启用不等于注册、纳税或社保归属已核", "市级奖补与区县、高新区条件分开，不能将省级截止当本级受理截止", "从实际官网导航定位部门栏目，不猜财政、人社、税务深链", "项目库无对应市级筛选时回文件库和已核官网补查"]
+    },
+    {
+      "id": "official_per_item", "name": "逐条确定的正式发文及办理机关",
+      "url": null, "enabled": true,
+      "role": "按真实候选确定原文、指南、申报表、名单或兑现材料",
+      "status": "per_item_verification",
+      "limitations": ["URL为空只是待逐条定位，不代表已核过任何来源", "只采用本轮实际核读的正式链接和真实下载材料", "办理资料需正常登录时保留获取入口和未取得状态", "不自动提交申报、税务处理、贷款申请或联系外部人员"]
+    }
+  ]
+}

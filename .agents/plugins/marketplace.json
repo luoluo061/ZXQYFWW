@@ -2,11 +2,11 @@
   "name": "zxqyfww-team",
   "plugins": [
     {
-      "name": "sme-opportunity-monitor",
+      "name": "sme-finance-opportunities",
       "source": {
         "source": "url",
         "url": "https://github.com/luoluo061/ZXQYFWW.git",
-        "ref": "main"
+        "ref": "finance-policy-funding"
       },
       "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
       "category": "Productivity"

@@ -1,107 +1,83 @@
-# 安装到其他人员的 Codex
+# 财务版安装说明
 
-安装分成两件事：把流程装进接收人的 Codex，再由那个 Codex 在**当前对话**中登记定时任务。复制代码不会自动复制定时任务。
+本说明用于 `finance-policy-funding` 分支。财务版采用独立技能和工作目录，不直接转换正在使用的通用政策或招标工作区。
 
-## 直接发给同事的安装指令
+## 发给财务人员 Codex 的指令
 
-同事在自己的 **Codex 桌面应用**中新建一个用于日常工作的对话，将下面整段发过去。把负责范围改成“政策”或“招标”；确实兼顾两者再填“两者”。负责人姓名可以在初始化时补充。
-
-```text
-请为我安装并启用这个政策与招标工作流程：
-https://github.com/luoluo061/ZXQYFWW
-
-我负责的范围：政策（可改为招标或两者）。
-请读取仓库 INSTALL.md 和 skills/sme-opportunity-monitor/SKILL.md，
-检查安装脚本，然后下载完整仓库到本机，使用可用 Python 运行 install.py。
-不要只用 skill-installer 复制 skills 子目录，runtime 和 templates 也需要。
-
-在源码目录以外建立我自己的“中小企业机会监测”工作目录，按负责范围初始化。
-企业画像和证据由我另行提供私有文件；不要把公司私有资料提交到这个公开仓库。
-已有记录、企业画像和人员意见要保留，不能重置。
-
-完成本地检查后，使用我的正常网页／浏览器工具做一次真实手动试跑，
-按企业画像查服务网和官方原文，政策、招标分开展示。
-保留未推荐项和筛选理由，人员审核及参与决定只能依据我的真实回复记录。
-若浏览器需要登录，让我在本机完成；不能把旧数据重导出说成已查新。
-
-实际试跑可用后，在这个当前对话中建立每天北京时间09:00、16:30的检查，
-先查找已有任务并更新，不能重复新建；使用 Codex 的 automation_update 工具，
-不要直接编写或复制其他人的 automation.toml、任务 ID 或聊天 ID。
-早间政策运行结束时打开中小企业服务网和2—3个重点核查页，
-在回复中同时给出筛选理由、最多3条关键条件、期限、原文、材料和待人员判断。
-下午无实质变化保持安静。完整日报时间暂不固定。
-最后分别说明：技能安装、本地检查、网站试跑、两次定时任务，哪些已完成、哪些待处理。
-```
-
-Codex 缺少实际定时任务工具或当前账户没有此功能时，完成安装与试跑，输出已渲染的待登记提示词，并明确“定时未创建”；不能把本地文件写成 ACTIVE 冒充登记成功。仅 CLI 或 IDE 可准备和测试流程，定时管理使用桌面应用支持的功能。
-
-## 手动安装命令
-
-从 GitHub 下载完整 ZIP 并解压，或 `git clone https://github.com/luoluo061/ZXQYFWW.git`。在源码目录运行：
+把下面整段复制到财务人员自己的 Codex 桌面应用对话，另附企业画像私有包。
 
 ```text
-python install.py install
-python install.py doctor
+请为我安装并启用财务找政策与政策性资金流程。
+仓库：https://github.com/luoluo061/ZXQYFWW
+指定分支：finance-policy-funding，请不要用main通用版代替。
+
+请读取此分支INSTALL.md和skills/sme-finance-opportunities/SKILL.md，
+下载完整分支，检查后运行install.py install --edition finance。
+在源码和技能缓存以外新建独立“财务政策资金监测”工作目录，
+用runtime/bootstrap.py init --edition finance --scope policy初始化。
+导入我提供的私有画像包后，再运行configure-finance和doctor。
+公司画像、财务证明和原始Word/Excel不要上传公开仓库。
+
+日常只查税费优惠、奖补兑现、人才用工稳岗、融资增信贴息。
+资质主要看衍生奖励减免或业务转来的财务指标复核，
+不把资质认定或商业银行贷款产品作为本岗位日常主范围。
+按真实证据核地区、纳税身份、财税所属期、财务资料及已享受情况，未知保留待核。
+
+先做一次真实网页试跑：服务网发现、官方原文与附件复核，保留未推荐与理由，
+导出八列每日检索台账、财务政策资金长期台账和人工复核池。
+无新政策也留本地检索日志，旧数据重导出不能称为今天已查。
+待补齐写缺口、协同部门和期限；是否参与由我决定。
+到账或税惠享受只按我提供的真实日期、凭证及证明记录，不自动确认。
+
+试跑可用后，在当前对话用自动化工具建立每天北京时间09:00和16:30的财务检查，
+优先核对已有相同财务任务，不重复创建或复制他人的任务ID和聊天ID。
+上午打开服务网和重点页，同时给筛选理由、最多3条条件、期限、原文和材料；
+下午按实质变化提醒，暂不另设固定完整日报。
+请分别说明技能安装、画像缺项、真实试跑、两条定时登记和首次触发的验收状态。
 ```
 
-默认安装到 `~/.agents/skills/sme-opportunity-monitor`。有多个同名技能时先核对来源，不要重复装另一种插件形式。若新技能未出现，重新打开对话或重启 Codex。
+缺少自动化工具时完成已能执行的部分，提供待登记提示词并明确尚未建任务。没有财务数据可查来源、保留线索，不得宣称税惠或资助条件已满足。
 
-安装器不会改 Codex 全局权限、联网配置或已有定时任务。升级仍从新版完整源码运行同一个安装命令：未改的程序文件可更新，自己修改过的文件保留原件并生成 `.new`，由 Codex 查看差异合并。安装器返回非零并列出冲突时先解决冲突，不能报告升级成功。
+## 下载与初始化
 
-技能内的 `runtime/bootstrap.py` 初始化个人工作目录，具体以 `--help` 为准。例如在源码目录执行：
+也可[下载财务分支完整ZIP](https://github.com/luoluo061/ZXQYFWW/archive/refs/heads/finance-policy-funding.zip)并解压，再在其中执行安装命令。
 
 ```text
-python runtime/bootstrap.py init --workspace "个人工作目录完整路径" --scope policy --operator "真实负责人"
-python runtime/bootstrap.py doctor --workspace "个人工作目录完整路径"
+git clone --branch finance-policy-funding --single-branch https://github.com/luoluo061/ZXQYFWW.git
+python install.py install --edition finance
+python install.py doctor --edition finance
+python runtime/bootstrap.py init --edition finance --scope policy --workspace "独立工作目录绝对路径" --operator "负责人显示名"
 ```
 
-`policy` 是政策、`tender` 是招标、`both` 是两者。工作目录放在源码仓库以外。若由插件安装，运行数据也放在插件缓存以外。程序会生成空台账、人工复核池和待登记配置；这些空输出只证明程序可运行。
+默认技能为 `~/.agents/skills/sme-finance-opportunities`，可以与通用技能并存。本分支安装器默认finance；显式 `--edition general` 仅兼容通用能力。Python 3.10+，可由 Codex 依赖工具找到本机自带运行时。
 
-## 企业画像私有迁移
-
-管理人员在拥有企业原始资料的电脑上运行，输出文件放在公开仓库以外：
+JSON画像可用初始化参数 `--profile-import`，保留企业事实并补财务配置。使用私有ZIP时先初始化，再执行：
 
 ```text
-python tools/profile_bundle.py pack --profile "现有工作目录/profile.json" --out "私有文件目录/企业画像私有包.zip"
+python tools/profile_bundle.py unpack --bundle "企业画像私有包.zip" --workspace "独立工作目录绝对路径" --replace-profile
+python runtime/bootstrap.py configure-finance --workspace "独立工作目录绝对路径"
+python runtime/bootstrap.py doctor --workspace "独立工作目录绝对路径"
 ```
 
-只打包画像及其 `source_documents` 明确引用的证据，不带历史 DB、人员审核、聊天、通知或自动化 ID。证据文件须在画像所在目录范围内；确需包含该范围外明确引用的证据时，先核文件再使用 `--allow-external-evidence`。包中仍含企业私有信息，通过团队既有私有渠道交付，不能放进公开仓库或 GitHub Release。
+替换前比较已有画像。configure-finance保存原画像备份，只补财务工作流和检索词，保留主体、已有资质和证据；纳税身份、年度数值、享受记录仍由人员确认。不能因已有高企等资格推定财务门槛全满足。
 
-接收人先初始化工作目录，再导入：
+## 每轮运行
+
+在个人工作目录执行，输入必须来自当轮实际网页读取。详细字段与人工回写见 [财务数据约定](skills/sme-finance-opportunities/references/finance-data-contracts.md)。
 
 ```text
-python tools/profile_bundle.py unpack --bundle "企业画像私有包.zip" --workspace "个人工作目录完整路径" --replace-profile
+python monitor.py run --input incoming/<run_id>.json --profile profile.json --db data/monitor.sqlite --out exports
+python human_review.py ingest --input incoming/<run_id>_screening.json --db data/human_review.sqlite
+python human_review.py export --db data/human_review.sqlite --out exports
+python monitor.py export --profile profile.json --db data/monitor.sqlite --out exports
+python finance_workflow.py log --workspace "当前工作目录绝对路径" --input incoming/<run_id>.json --screening incoming/<run_id>_screening.json
+python finance_workflow.py export --workspace "当前工作目录绝对路径"
 ```
 
-`--replace-profile` 明确替换并备份现有画像。不要用别人的旧画像覆盖本机已更新内容；先让 Codex比较差异。工具校验哈希，导入后修正证据路径；保留原证据日期，不能把历史证书状态说成今天已向官方重新核验。
+先归档上轮exports，再生成本轮导出。保留查询、地区、分页、失败和材料缺口。P编号财务审核用finance review，R编号筛选纠错用human_review review，人员参与决定另据明确回复记录。只是export不构成查新或人员已审。
 
-## 定时登记规则
+## 验收和升级
 
-- `policy`：09:00政策核查开场，16:30政策增量。
-- `tender`：09:00招标检查，16:30招标增量。
-- `both`：09:00一条任务按顺序检查两类，16:30一条任务按顺序检查两类；报告仍分开。避免同一工作目录9点由两个任务同时写库。
+技能完整、工作区edition=finance且scope=policy；真实画像和证据能定位；真实网页轮次可追溯；两份财务CSV与R复核池可打开；没有人回复仍待审；当前账户返回的两条任务及对话归属、09:00/16:30状态读回正确。首次到点执行另行验收，电脑和应用需满足本地运行条件。
 
-时区固定 `Asia/Shanghai`。在接收人当前对话登记 heartbeat，保留 Codex 实际返回的任务 ID，再读取确认启用状态及时间。一个工作目录用一个固定日常对话；换对话前迁移任务归属，不能在每个新对话都再建两条。
-
-同事选择安装并启用的提示已授权在其环境登记上述两次检查。不能因 README 描述就替其他尚未接受安装的人员或本机另建任务。固定完整日报时间仍待团队决定。
-
-## 验收与日常使用
-
-完成后让接收人的 Codex 逐项给出实际结果：
-
-| 验收项 | 合格证据 |
-| --- | --- |
-| 技能完整 | 安装器 doctor 通过，无未解决升级冲突 |
-| 工作目录独立 | 路径在源码及插件缓存外，scope和负责人正确 |
-| 企业画像有效 | 企业主体、业务、地区与资质有来源；未知保持待核 |
-| 真正查到网页 | 本轮时间、查询范围／分页、失败与缺口，至少实际打开可用来源 |
-| 人工能接着做 | 服务网入口、重点解析、暂不推荐复核池都能打开；未审仍为未审 |
-| 资料可用 | 原文真实链接；附件已下载／需登录／待取得状态正确 |
-| 定时已登记 | 当前账户工具返回的真实 ID、北京时间09:00和16:30、ACTIVE及当前对话归属 |
-| 首次定时实跑 | 到点后有运行记录，成功或失败有真实证据；未到点写“尚未验收” |
-
-每天人员仍需在服务网主动浏览，自选约2条细看，抽查暂不推荐项（2条风险／待核优先、1条轮换，不足不凑数）。没有机器推荐不代表人员工作结束。对话中按对应编号和依据给筛选审核、参与决定及企业画像反馈，程序才回写。
-
-多个同事的记录目前独立保存；正式参与事项指定唯一主记录负责人，汇总时带原文或项目编号。团队共享审批和统一台账需另做协同层，不能依靠 Git 合并个人数据库。
-
-官方依据：[技能加载位置](https://learn.chatgpt.com/docs/build-skills)、[定时任务和本地运行条件](https://learn.chatgpt.com/docs/automations)、[插件分发规范](https://developers.openai.com/plugins/build/plugins)。
+升级从新版完整财务包运行install，再用同包runtime/bootstrap.py upgrade更新既有财务目录。保留画像、人员审核、兑现证据、数据库和真实定时登记。自定义文件出现.new先合并；升级不等于网站查新。
